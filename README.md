@@ -1,17 +1,18 @@
 # PADELUM — Court Club
 
-Juego de pádel 2D para navegador, creado con HTML, CSS y JavaScript nativos.
+Juego de pádel arcade 2D para navegador, diseñado en horizontal para PC.
 
-## Cómo jugar
-- **Contra la CPU:** mueve al jugador con **WASD** y golpea con **F**.
-- **Dos jugadores:** Jugador 1 usa **WASD + F**; Jugador 2 usa **flechas + M**.
+## Controles
+- **Contra la CPU:** jugador 1 se mueve con **WASD** y golpea con **F**.
+- **Dúo local:** jugador 1 usa **WASD + F**; jugador 2 usa **flechas + M**.
 - Gana quien llegue primero a **5 puntos**.
-- Pulsa **Esc** o el botón de pausa para detener el partido.
+- **Esc** o el botón de pausa detiene el partido.
 
-## Publicar con GitHub Pages
-1. Entra en Settings → Pages.
-2. En Build and deployment, selecciona Deploy from a branch.
-3. Selecciona la rama `main` y la carpeta `/ (root)`.
-4. Guarda y espera a que GitHub Pages publique el sitio.
+## Publicación
+El juego está en `index.html` y no necesita instalación ni compilación. GitHub Pages debe estar configurado en Settings → Pages → Deploy from a branch → `main` → `/(root)`.
 
-El juego está en `index.html` y no necesita instalación ni compilación.
+## Créditos
+- **UniFormerStudio**
+- **@bvilla**
+
+La animación de introducción de PADELUM replica la secuencia visual de intro del proyecto STARSHIP-SABOTAGE.
