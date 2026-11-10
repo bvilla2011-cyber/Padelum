@@ -246,51 +246,54 @@ async function joinChampionship(){
   },1500);
  }catch(e){status("No se pudo unir al campeonato: "+e.message,"error")}
 }
-async function matchmaking() {
-  stopPolling(); clearCode(); saveName();
-  const name = cleanName(), createdAt = new Date().toISOString();
-  status("Buscando rival… si nadie aparece en 15 segundos jugarás contra una CPU avanzada.");
-  let queueRow;
-  try {
-    queueRow = await db.createRow({ databaseId: DATABASE_ID, tableId: "match_queue", rowId: ID.unique(), data: { playerId: user.$id, displayName: name, status: "waiting", roomCode: "", createdAt }, permissions: ownerPerms(user.$id) });
-  } catch (e) { return status("No se pudo entrar en la cola: " + e.message, "error"); }
-  const started = Date.now();
-  currentPoll = setInterval(async () => {
-    try {
-      const joinedRooms = await db.listRows({ databaseId: DATABASE_ID, tableId: "game_rooms", queries: [Query.equal("guestId", user.$id), Query.equal("mode", "matchmaking"), Query.equal("status", "ready"), Query.limit(1)] });
-      if (joinedRooms.rows.length) { activeRoom = joinedRooms.rows[0]; stopPolling(); try { await db.deleteRow({ databaseId: DATABASE_ID, tableId: "match_queue", rowId: queueRow.$id }); } catch {} showCode(activeRoom.code, "RIVAL ENCONTRADO"); status("¡Te has emparejado con " + activeRoom.hostName + "! Sala online creada. La sincronización de pista se completará en la siguiente fase.", "success"); return; }
-      const waiting = await db.listRows({ databaseId: DATABASE_ID, tableId: "match_queue", queries: [Query.equal("status", "waiting"), Query.orderAsc("createdAt"), Query.limit(20)] });
-      const fresh = waiting.rows.filter(r => Date.now() - new Date(r.createdAt).getTime() < 30000).sort((a,b) => a.createdAt.localeCompare(b.createdAt));
-      const entries = fresh.filter(r => r.playerId !== user.$id);
-      const all = fresh;
-      if (entries.length) {
-        const first = all[0];
-        if (first && first.playerId === user.$id) {
-          const opponent = entries[0], code = code6(), now = new Date().toISOString();
-          await db.createRow({ databaseId: DATABASE_ID, tableId: "game_rooms", rowId: ID.unique(), data: { code, mode: "matchmaking", status: "ready", hostId: user.$id, guestId: opponent.playerId, hostName: name, guestName: opponent.displayName, createdAt: now, updatedAt: now, gameState: "" }, permissions: ownerPerms(user.$id) });
-          await db.updateRow({ databaseId: DATABASE_ID, tableId: "match_queue", rowId: queueRow.$id, data: { status: "matched", roomCode: code } });
-          activeRoom = { code, hostId: user.$id, guestId: opponent.playerId, hostName: name, guestName: opponent.displayName };
-          stopPolling(); showCode(code, "RIVAL ENCONTRADO");
-          status("¡Te has emparejado con " + opponent.displayName + "! La sala online está creada. La sincronización del partido se activará en la siguiente fase.", "success");
-        } else {
-          const mine = all.find(r => r.playerId === user.$id);
-          if (mine && mine.status === "matched") {
-            const room = await db.listRows({ databaseId: DATABASE_ID, tableId: "game_rooms", queries: [Query.equal("code", mine.roomCode), Query.limit(1)] });
-            if (room.rows[0]) { activeRoom = room.rows[0]; stopPolling(); showCode(mine.roomCode, "RIVAL ENCONTRADO"); status("¡Te has emparejado con " + room.rows[0].hostName + "! La sala online está creada. La sincronización del partido se activará en la siguiente fase.", "success"); }
-          }
-        }
-        return;
-      }
-      if (Date.now() - started >= 15000) {
-        stopPolling();
-        try { await db.deleteRow({ databaseId: DATABASE_ID, tableId: "match_queue", rowId: queueRow.$id }); } catch {}
-        status("No encontramos rival. Entrando contra una CPU avanzada…", "success");
-        window.PADELUMHighCPU = true;
-        if (typeof window.PADELUMStartCPU === "function") window.PADELUMStartCPU();
-        else status("CPU alternativa lista, pero el motor de juego no ha terminado de inicializarse.", "error");
-      }
-    } catch (e) { status("Buscando rival… " + e.message); }
-  }, 1300);
+let pvpQueueRow=null,pvpStartedAt=0,pvpActive=false,pvpPollBusy=false;
+function formatPvpTime(seconds){return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")}
+function updatePvpTimer(){if(!pvpActive)return;const elapsed=Math.floor((Date.now()-pvpStartedAt)/1000);$("pvpTimer").textContent=formatPvpTime(elapsed);$("pvpSearchHint").textContent=elapsed>=45?"No encontramos rival. Pulsa «JUGAR CONTRA CPU» o cancela para salir.":"Buscando rival… "+(45-elapsed)+" s para activar la opción de CPU."}
+async function cancelPvpSearch(){
+ if(!pvpActive&& !pvpQueueRow)return;
+ pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;
+ if(row&&db){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch(e){console.warn("Queue cleanup:",e)}}
+ $("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Búsqueda cancelada. No se iniciará ninguna CPU.";
+ $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";$("pvpSearchBtn").onclick=null;
+ status("Búsqueda PVP cancelada. No se iniciará ninguna CPU.");
+}
+async function startPvpSearch(){
+ if(pvpActive)return;
+ stopPolling();clearCode();saveName();$("pvpSearchBtn").onclick=null;
+ $("pvpSearchBtn").disabled=true;$("pvpSearchBtn").textContent="BUSCANDO…";
+ try{pvpQueueRow=await db.createRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:ID.unique(),data:{playerId:user.$id,displayName:cleanName(),status:"waiting",roomCode:"",createdAt:new Date().toISOString()},permissions:ownerPerms(user.$id)})}
+ catch(e){$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";return status("No se pudo entrar en la cola: "+e.message,"error")}
+ pvpStartedAt=Date.now();pvpActive=true;pvpPollBusy=false;$("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Buscando rival… CPU disponible al llegar a 00:45.";status("Buscando rival PVP…");
+ currentPoll=setInterval(async()=>{
+  if(!pvpActive||pvpPollBusy)return;pvpPollBusy=true;
+  try{
+   const elapsed=(Date.now()-pvpStartedAt)/1000;
+   const joined=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("guestId",user.$id),Query.equal("mode","matchmaking"),Query.equal("status","ready"),Query.limit(1)]});
+   if(!pvpActive)return;
+   if(joined.rows.length){activeRoom=joined.rows[0];pvpActive=false;stopPolling();try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id})}catch{}pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(activeRoom.code,"RIVAL ENCONTRADO");status("¡Te has emparejado con "+activeRoom.hostName+"! Sala online creada. La sincronización de pista aún no está disponible.","success");return}
+   const waiting=await db.listRows({databaseId:DATABASE_ID,tableId:"match_queue",queries:[Query.equal("status","waiting"),Query.orderAsc("createdAt"),Query.limit(40)]});
+   if(!pvpActive)return;
+   const fresh=waiting.rows.filter(r=>Date.now()-new Date(r.createdAt).getTime()<60000).sort((a,b)=>a.createdAt.localeCompare(b.createdAt)),entries=fresh.filter(r=>r.playerId!==user.$id),all=fresh;
+   if(entries.length){
+    const first=all[0];
+    if(first&&first.playerId===user.$id){
+     const opponent=entries[0],code=code6(),now=new Date().toISOString();
+     await db.createRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:ID.unique(),data:{code,mode:"matchmaking",status:"ready",hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName,createdAt:now,updatedAt:now,gameState:""},permissions:ownerPerms(user.$id)});
+     await db.updateRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id,data:{status:"matched",roomCode:code}});
+     activeRoom={code,hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName};pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(code,"RIVAL ENCONTRADO");status("¡Rival encontrado! Sala online creada; la pista sincronizada todavía no está implementada.","success");return;
+    }
+    const mine=all.find(r=>r.playerId===user.$id);
+    if(mine&&mine.status==="matched"){const room=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("code",mine.roomCode),Query.limit(1)]});if(room.rows[0]){activeRoom=room.rows[0];pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(mine.roomCode,"RIVAL ENCONTRADO");status("¡Rival encontrado! Sala online creada; la pista sincronizada todavía no está implementada.","success");return}}
+   }
+   updatePvpTimer();
+   if(elapsed>=45&&pvpActive){pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;if(row){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch{}}
+    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR CONTRA CPU";$("pvpSearchHint").textContent="Han pasado 45 segundos sin rival. Pulsa para iniciar una CPU avanzada o cancela para salir.";
+    $("pvpSearchBtn").onclick=()=>{if(pvpActive)return;$("pvpSearchBtn").onclick=null;window.PADELUMHighCPU=true;if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("El motor de juego aún no está listo.","error")};
+    status("No encontramos rival en 45 segundos. Puedes jugar contra la CPU avanzada o cancelar.");
+   }
+  }catch(e){if(pvpActive)status("Buscando rival… "+(e.message||e))}
+  finally{pvpPollBusy=false}
+ },1000);
 }
 
 function bindUI() {
@@ -304,7 +307,9 @@ function bindUI() {
   };
   $("privateCreateBtn").addEventListener("click", runWhenConnected(createPrivateRoom));
   $("onlineJoin").addEventListener("click", runWhenConnected(joinPrivateRoom));
-  $("onlineRandom").addEventListener("click", runWhenConnected(matchmaking));
+  $("onlineRandom").addEventListener("click", () => { $("pvpSearchPanel").hidden=false; $("privateOptions").hidden=true; $("champOptions").hidden=true; $("tournamentLobby").hidden=true; $("pvpSearchPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); });
+  $("pvpSearchBtn").addEventListener("click", runWhenConnected(startPvpSearch));
+  $("pvpCancelBtn").addEventListener("click", cancelPvpSearch);
   $("champOpen").addEventListener("click", () => {
     $("champOptions").hidden = false; $("privateOptions").hidden = true; $("onlineCodeCard").hidden = true;
     $("champOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -313,7 +318,7 @@ function bindUI() {
   $("tourneyStart").addEventListener("click", startChampionship);
   $("tourneyBack").addEventListener("click", () => { stopPolling(); $("tournamentLobby").hidden=true; $("champOptions").hidden=false; });
   $("champJoin").addEventListener("click", runWhenConnected(joinChampionship));
-  $("onlineBack").addEventListener("click", () => { stopPolling(); clearCode(); $("privateOptions").hidden = true; $("champOptions").hidden = true; $("tournamentLobby").hidden = true; });
+  $("onlineBack").addEventListener("click", () => { if(pvpActive||pvpQueueRow)cancelPvpSearch(); stopPolling(); clearCode(); $("privateOptions").hidden = true; $("champOptions").hidden = true; $("tournamentLobby").hidden = true; $("pvpSearchPanel").hidden=true; });
   document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => { $(button.dataset.close).hidden = true; }));
   $("onlineCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
   $("champCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
