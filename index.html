@@ -107,9 +107,9 @@ function point(who){score[who]++;$('s1').textContent=score[0];$('s2').textConten
 function finish(who){running=false;$('winnerText').textContent=who===0?'VICTORIA':'PARTIDAZO';$('resultText').textContent=who===0?(mode==='duo'?'Player 01 se lleva el partido. Qué nivel.':'Has ganado a la CPU. La pista es tuya.'):(mode==='duo'?'Player 02 se lleva el partido. ¡Gran duelo!':'La CPU se lleva esta. ¿Revancha?');$('resultOverlay').classList.add('show')}
 function update(dt){const sp=.00034*dt;players.forEach((p,i)=>{p.hitCooldown=Math.max(0,p.hitCooldown-dt);p.swing=Math.max(0,p.swing-dt/17);if(i===0||mode==='duo'){let dx=i===0?(keys.d?1:0)-(keys.a?1:0):(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);let dy=i===0?(keys.s?1:0)-(keys.w?1:0):(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0);p.x=clamp(p.x+dx*sp,.2,.8);p.y=clamp(p.y+dy*sp,i===0?.56:.07,i===0?.96:.44);if(dx||dy)p.step+=dt*.3}else{let targetX=ball.x,targetY=clamp(ball.y,.12,.39);p.x+=clamp(targetX-p.x,-.0025*dt,.0025*dt);p.y+=clamp(targetY-p.y,-.0015*dt,.0015*dt);if(Math.abs(ball.x-p.x)<.16&&Math.abs(ball.y-p.y)<.19&&ball.y<.48&&ball.z<.25&&Math.random()<.022*dt)hit(1)}});
 ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.z+=ball.vz*dt;ball.vz-=.00015*dt;ball.vx*=Math.pow(.9992,dt);ball.vy*=Math.pow(.9994,dt);
-if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.64;ball.bounces++;if(ball.bounces>1){point(ball.lastHit);return}}
+if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.64;ball.bounces++;if(ball.bounces>1){point(1-ball.lastHit);return}}
 if(ball.x<.08||ball.x>.92){ball.x=clamp(ball.x,.08,.92);ball.vx*=-.83;ball.bounces++}
-if(ball.y<.025||ball.y>.975){point(ball.lastHit);return}
+if(ball.y<.025||ball.y>.975){point(1-ball.lastHit);return}
 if(pointTimer>0)pointTimer--;if(toastTimer>0&&!--toastTimer)$('toast').classList.remove('show');screenShake=Math.max(0,screenShake-dt*.5)}
 function render(){ctx.save();if(screenShake)ctx.translate(rand(-screenShake,screenShake),rand(-screenShake,screenShake));drawCourt();players.forEach(drawPlayer);drawBall();ctx.restore()}
 function loop(t){if(!running)return;let dt=Math.min(2.2,(t-last)/16.67||1);last=t;if(!paused)update(dt);render();raf=requestAnimationFrame(loop)}
