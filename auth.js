@@ -1,4 +1,4 @@
-import { Client, Account, ID } from "https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm";
+import { Client, Account, ID } from "https://cdn.jsdelivr.net/npm/appwrite@28.0.0/+esm";
 
 const PROJECT_ID = "padelum-online";
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
@@ -45,7 +45,7 @@ function showCode(userId, email) {
   message("Código enviado a " + email + ". Revisa también la carpeta de spam.", "success");
 }
 async function sendCode(userId, email) {
-  await account.createEmailToken({ userId, email });
+  await account.createEmailVerificationOTP();
   showCode(userId, email);
 }
 async function enterGame(user) {
@@ -68,8 +68,7 @@ async function verifyCode() {
   if (!/^\d{6}$/.test(secret)) return message("Introduce el código de seis cifras.", "error");
   $("authVerify").disabled = true;
   try {
-    await account.createSession({ userId: pendingUserId, secret });
-    await account.updatePrefs({ prefs: { padelumEmailVerified: true } });
+    await account.updateEmailVerificationOTP({ userId: pendingUserId, secret });
     const user = await account.get();
     pendingUserId = ""; pendingEmail = "";
     await enterGame(user);
@@ -87,11 +86,12 @@ async function submitAuth() {
   try {
     if (mode === "signup") {
       const user = await account.create({ userId: ID.unique(), email, password });
+      await account.createEmailPasswordSession({ email, password });
       await sendCode(user.$id, email);
     } else {
       const session = await account.createEmailPasswordSession({ email, password });
       const user = await account.get();
-      if (user.prefs?.padelumEmailVerified !== true) {
+      if (user.emailVerification !== true) {
         await sendCode(user.$id, email);
         message("Para terminar de activar tu cuenta, confirma el código que acabamos de enviarte.", "success");
       } else {
@@ -135,7 +135,7 @@ async function boot() {
   setMode("login");
   try {
     const user = await account.get();
-    if (user.email && user.prefs?.padelumEmailVerified === true) {
+    if (user.email && user.emailVerification === true) {
       await enterGame(user);
     } else {
       try { await account.deleteSession({ sessionId: "current" }); } catch {}
