@@ -248,13 +248,13 @@ async function joinChampionship(){
 }
 let pvpQueueRow=null,pvpStartedAt=0,pvpActive=false,pvpPollBusy=false;
 function formatPvpTime(seconds){return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")}
-function updatePvpTimer(){if(!pvpActive)return;const elapsed=Math.floor((Date.now()-pvpStartedAt)/1000);$("pvpTimer").textContent=formatPvpTime(elapsed);$("pvpSearchHint").textContent=elapsed>=45?"No encontramos rival. Pulsa «JUGAR CONTRA CPU» o cancela para salir.":"Buscando rival… "+(45-elapsed)+" s para activar la opción de CPU."}
+function updatePvpTimer(){if(!pvpActive)return;const elapsed=Math.floor((Date.now()-pvpStartedAt)/1000);$("pvpTimer").textContent=formatPvpTime(elapsed);$("pvpSearchHint").textContent=elapsed>=45?"Rival no encontrado.":"Buscando rival… "+(45-elapsed)+" s."}
 async function cancelPvpSearch(){
  pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;
  if(row&&db){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch(e){console.warn("Queue cleanup:",e)}}
- $("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Búsqueda cancelada. No se iniciará ninguna CPU.";
+ $("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Búsqueda cancelada.";
  $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";$("pvpSearchBtn").onclick=null;
- status("Búsqueda PVP cancelada. No se iniciará ninguna CPU.");
+ status("Búsqueda cancelada.");
 }
 async function startPvpSearch(){
  if(pvpActive)return;
@@ -262,7 +262,7 @@ async function startPvpSearch(){
  $("pvpSearchBtn").disabled=true;$("pvpSearchBtn").textContent="BUSCANDO…";
  try{pvpQueueRow=await db.createRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:ID.unique(),data:{playerId:user.$id,displayName:cleanName(),status:"waiting",roomCode:"",createdAt:new Date().toISOString()},permissions:ownerPerms(user.$id)})}
  catch(e){$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";return status("No se pudo entrar en la cola: "+e.message,"error")}
- pvpStartedAt=Date.now();pvpActive=true;pvpPollBusy=false;$("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Buscando rival… CPU disponible al llegar a 00:45.";status("Buscando rival PVP…");
+ pvpStartedAt=Date.now();pvpActive=true;pvpPollBusy=false;$("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Buscando rival… 00:45.";status("Buscando rival PVP…");
  currentPoll=setInterval(async()=>{
   if(!pvpActive||pvpPollBusy)return;pvpPollBusy=true;
   try{
@@ -286,9 +286,11 @@ async function startPvpSearch(){
    }
    updatePvpTimer();
    if(elapsed>=45&&pvpActive){pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;if(row){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch{}}
-    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR CONTRA CPU";$("pvpSearchHint").textContent="Han pasado 45 segundos sin rival. Pulsa para iniciar una CPU avanzada o cancela para salir.";
-    $("pvpSearchBtn").onclick=()=>{if(pvpActive)return;$("pvpSearchBtn").onclick=null;window.PADELUMHighCPU=true;if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("El motor de juego aún no está listo.","error")};
-    status("No encontramos rival en 45 segundos. Puedes jugar contra la CPU avanzada o cancelar.");
+    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR";$("pvpSearchHint").textContent="Preparando partido…";
+    const names=["Álex Navarro","Dani Costa","Hugo Martín","Leo Serrano","Marc Vidal","Adrián Ríos","Pablo Ferrer","Mario Soler","Eric Molina","Lucas Romero","Nico Torres","Izan Castro","Jaime Ortega","Bruno Reyes","Álvaro Gil","Pol Medina"];
+    window.PADELUMOpponentName=names[Math.floor(Math.random()*names.length)];
+    window.PADELUMHighCPU=true;
+    if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("No se pudo iniciar el partido.","error");
    }
   }catch(e){if(pvpActive)status("Buscando rival… "+(e.message||e))}
   finally{pvpPollBusy=false}
