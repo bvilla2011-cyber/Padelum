@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PADELUM — Court Club</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+:root{--lime:#d8ff4f;--ink:#101714;--cream:#f3f1e8}
+*{box-sizing:border-box}body{margin:0;background:#101714;color:var(--cream);font-family:'DM Sans',sans-serif;overflow:hidden}
+button{font:inherit;cursor:pointer;border:0}
+#app{height:100dvh;min-height:500px;position:relative;background:radial-gradient(ellipse at 50% 38%,#34463a,#111a16 70%);overflow:hidden}
+.topbar{position:absolute;z-index:5;top:0;left:0;right:0;padding:23px 5vw;display:flex;justify-content:space-between;align-items:center}
+.brand{font:900 30px 'Barlow Condensed';letter-spacing:2px}.brand span{color:var(--lime)}.top-note{font-size:10px;letter-spacing:3px;color:#a6b4a9;font-weight:700}
+.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:90px 20px 30px}.screen.active{display:flex}
+.menu-wrap{width:min(1080px,100%);display:grid;grid-template-columns:1.05fr .95fr;gap:35px;align-items:center}
+.eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:4px;margin-bottom:15px}
+h1{font:900 clamp(65px,10vw,132px)/.78 'Barlow Condensed';letter-spacing:-3px;margin:0 0 25px;text-transform:uppercase}
+h1 em{font-style:normal;color:var(--lime)}
+.lead{color:#b8c4ba;line-height:1.7;max-width:420px;font-size:14px}
+.actions{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.btn{padding:16px 25px;font-weight:900;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;border-radius:5px;transition:.2s}
+.btn.primary{background:var(--lime);color:#111a13;box-shadow:0 6px 0 #8da92e}.btn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 0 #8da92e}
+.btn.ghost{border:1px solid #59665c;background:#1a251e;color:#f3f1e8}.btn.ghost:hover{border-color:var(--lime);color:var(--lime)}
+.preview{height:min(510px,58vh);min-height:300px;position:relative;border:1px solid #4a5b4d;border-radius:8px;overflow:hidden;background:linear-gradient(#35483a,#19271e)}
+.preview:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 28px,#ffffff08 29px 30px)}
+.mini-court{position:absolute;left:17%;right:17%;top:10%;bottom:8%;border:3px solid #d7e2d3;border-bottom-width:5px;background:linear-gradient(90deg,#377b60,#438b69 50%,#377b60);transform:perspective(450px) rotateX(10deg);box-shadow:0 0 0 7px #253c30}
+.mini-court:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid white}.mini-court:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid white}
+.mini-net{position:absolute;left:12%;right:12%;top:49%;height:13px;background:repeating-linear-gradient(90deg,#dfe6d9 0 2px,#7f9587 2px 5px);border-block:2px solid white;z-index:2}
+.mini-player{position:absolute;bottom:7%;left:50%;transform:translateX(-50%);width:55px;height:83px;z-index:3}
+.mini-player:before{content:"";position:absolute;bottom:0;left:11px;width:34px;height:48px;border-radius:15px 15px 8px 8px;background:#d8ff4f}
+.mini-player:after{content:"";position:absolute;bottom:40px;left:16px;width:25px;height:25px;border-radius:50%;background:#d9b18b;box-shadow:19px 26px 0 -8px #d8ff4f}
+.mini-ball{position:absolute;top:42%;left:58%;width:13px;height:13px;border-radius:50%;background:#e5ff5b;box-shadow:0 0 20px #e5ff5b;z-index:4}
+.preview-label{position:absolute;bottom:18px;left:20px;font:800 12px 'Barlow Condensed';letter-spacing:2px}
+.mode-panel{width:min(560px,100%);background:#19231d;border:1px solid #465749;padding:34px;border-radius:8px}
+.mode-panel h2{font:800 42px 'Barlow Condensed';margin:0 0 8px}.mode-panel p{color:#aebbb0;font-size:13px;line-height:1.6}
+.mode-choice{display:flex;align-items:center;justify-content:space-between;padding:18px;border:1px solid #435347;border-radius:5px;margin-top:12px;background:#202d24;color:white;text-align:left;width:100%}
+.mode-choice:hover{border-color:var(--lime);background:#29392d}.mode-choice strong{font:800 23px 'Barlow Condensed';display:block}.mode-choice small{color:#aebbb0;font-size:11px}.arrow{color:var(--lime);font-size:25px}
+#game{position:absolute;inset:0;display:none;background:#18251d}#game.active{display:block}canvas{width:100%;height:100%;display:block}
+.hud{position:absolute;z-index:4;top:18px;left:0;right:0;display:flex;justify-content:center;gap:12px;pointer-events:none}
+.scorebox{background:#111a15eF;border:1px solid #566653;border-radius:6px;padding:9px 19px;min-width:100px;text-align:center;backdrop-filter:blur(8px)}
+.scorebox small{display:block;color:#a9b8a9;font-size:9px;letter-spacing:2px;font-weight:800}.scorebox strong{font:800 32px 'Barlow Condensed';color:var(--lime)}
+.hud-actions{position:absolute;right:18px;top:18px;display:flex;gap:8px;pointer-events:auto}.hud-actions button{background:#111a15dd;color:white;border:1px solid #627062;border-radius:4px;padding:10px 13px;font-size:10px;font-weight:800;letter-spacing:1px}
+.controls{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);background:#101914d9;border:1px solid #536052;border-radius:5px;padding:9px 15px;color:#d1dbd0;font-size:10px;white-space:nowrap;pointer-events:none}
+.overlay{position:absolute;inset:0;background:#08100dcc;display:none;align-items:center;justify-content:center;z-index:8;padding:20px;text-align:center;backdrop-filter:blur(7px)}.overlay.show{display:flex}
+.result-card{width:min(430px,100%);padding:40px 30px;background:#1b2820;border:1px solid #66765c;border-radius:8px}
+.result-card .trophy{font-size:48px}.result-card h2{font:900 65px/.9 'Barlow Condensed';margin:12px 0;color:var(--lime)}.result-card p{color:#c1ccc0;font-size:13px}
+.result-card .actions{justify-content:center}
+.toast{position:absolute;top:95px;left:50%;transform:translateX(-50%);background:#d8ff4f;color:#142016;padding:8px 14px;font-size:10px;font-weight:900;letter-spacing:2px;border-radius:3px;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1}
+@media(max-width:760px){.menu-wrap{grid-template-columns:1fr;gap:22px}.preview{height:260px;min-height:0;order:-1}.menu-copy{text-align:center}.lead{margin:auto}.actions{justify-content:center}.topbar{padding:16px 20px}.top-note{font-size:8px}.screen{padding-top:70px}.mode-panel{padding:24px}.controls{font-size:8px;bottom:8px}.hud-actions{top:65px;right:10px}.scorebox{min-width:75px;padding:6px 12px}.scorebox strong{font-size:25px}}
+</style>
+</head>
+<body><div id="app">
+<header class="topbar"><div class="brand">PADE<span>LUM</span></div><div class="top-note">COURT CLUB · EST. 2026</div></header>
+<section id="home" class="screen active"><div class="menu-wrap"><div class="menu-copy"><div class="eyebrow">TU PISTA. TUS REGLAS.</div><h1>PLAY<br><em>THE</em><br>POINT.</h1><p class="lead">Entra en la pista. Lee el rebote, prepara el golpe y gana el punto. Un pequeño juego de pádel para retar a la máquina o a quien tengas al lado.</p><div class="actions"><button class="btn primary" id="playBtn">JUGAR AHORA ↗</button><button class="btn ghost" id="howBtn">CÓMO JUGAR</button></div></div><div class="preview"><div class="mini-court"></div><div class="mini-net"></div><div class="mini-player"></div><div class="mini-ball"></div><div class="preview-label">CENTRE COURT · MATCH POINT</div></div></div></section>
+<section id="modes" class="screen"><div class="mode-panel"><div class="eyebrow">ELIGE TU PARTIDO</div><h2>¿CON QUIÉN JUEGAS?</h2><p>Partidas rápidas a cinco puntos. Mantén la posición, espera a que la bola llegue y pulsa para devolverla.</p><button class="mode-choice" id="soloBtn"><span><strong>01 / CONTRA LA CPU</strong><small>Tú contra un rival controlado por el juego · WASD + F</small></span><span class="arrow">↗</span></button><button class="mode-choice" id="duoBtn"><span><strong>02 / DOS JUGADORES</strong><small>Dos personas · mismo teclado · misma pista</small></span><span class="arrow">↗</span></button><button class="btn ghost" id="backHome" style="margin-top:20px">← VOLVER</button></div></section>
+<div id="game"><canvas id="court"></canvas><div class="hud"><div class="scorebox"><small>JUGADOR 1</small><strong id="s1">0</strong></div><div class="scorebox"><small>SETS · PUNTOS</small><strong style="font-size:18px;padding-top:7px">PADELUM</strong></div><div class="scorebox"><small id="p2name">CPU</small><strong id="s2">0</strong></div></div><div class="hud-actions"><button id="pauseBtn">Ⅱ PAUSA</button><button id="exitBtn">✕ SALIR</button></div><div class="controls" id="controlText">WASD MOVER · F GOLPEAR</div><div class="toast" id="toast">¡BUEN GOLPE!</div></div>
+<div class="overlay" id="pauseOverlay"><div class="result-card"><div class="eyebrow">PARTIDO EN PAUSA</div><h2>TAKE<br>A BREATH.</h2><div class="actions"><button class="btn primary" id="resumeBtn">CONTINUAR</button><button class="btn ghost" id="pauseExit">MENÚ</button></div></div></div>
+<div class="overlay" id="resultOverlay"><div class="result-card"><div class="trophy">🏆</div><div class="eyebrow">FINAL DEL PARTIDO</div><h2 id="winnerText">¡VICTORIA!</h2><p id="resultText">Has dominado la pista.</p><div class="actions"><button class="btn primary" id="againBtn">OTRA PARTIDA ↻</button><button class="btn ghost" id="menuBtn">MENÚ PRINCIPAL</button></div></div></div>
+</div>
+<script>
+(()=>{
+const $=id=>document.getElementById(id), canvas=$('court'),ctx=canvas.getContext('2d');
+let mode='solo',running=false,paused=false,raf=0,last=0,score=[0,0],ball,players=[],keys={},pointTimer=0,flash=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function resize(){const d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(canvas.clientWidth*d);canvas.height=Math.round(canvas.clientHeight*d);ctx.setTransform(d,0,0,d,0,0)}
+new ResizeObserver(resize).observe(canvas);
+function start(m){mode=m;score=[0,0];$('s1').textContent='0';$('s2').textContent='0';$('p2name').textContent=m==='duo'?'JUGADOR 2':'CPU';$('controlText').textContent=m==='duo'?'P1: WASD + F  ·  P2: FLECHAS + M':'WASD MOVER · F GOLPEAR';$('home').classList.remove('active');$('modes').classList.remove('active');$('game').classList.add('active');$('resultOverlay').classList.remove('show');$('pauseOverlay').classList.remove('show');resize();players=[{x:.5,y:.84,vx:0,vy:0,color:'#d8ff4f',hit:'f',human:true},{x:.5,y:.16,vx:0,vy:0,color:'#ff765f',hit:'m',human:m==='duo'}];resetBall(Math.random()>.5?1:-1);running=true;paused=false;last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
+function resetBall(dir){ball={x:.5,y:dir>0?.28:.72,z:.07,vx:(Math.random()-.5)*.004,vy:dir*.003,vz:.006,spin:0,bounces:0,lastHit:dir>0?1:0};pointTimer=45}
+function dimensions(){return {w:canvas.clientWidth,h:canvas.clientHeight,cx:canvas.clientWidth/2,top:canvas.clientHeight*.12,bottom:canvas.clientHeight*.91,half:canvas.clientWidth*.31}}
+function project(x,y,z=0){const d=dimensions(),depth=(y);return {x:d.cx+(x-.5)*d.half*2*(.55+depth*.8),y:d.top+(d.bottom-d.top)*depth-z*canvas.clientHeight*.55}}
+function drawCourt(){const d=dimensions(),w=d.half*2,top=d.top,bot=d.bottom,cx=d.cx;
+let grad=ctx.createLinearGradient(0,top,0,bot);grad.addColorStop(0,'#2e7557');grad.addColorStop(1,'#3c956b');ctx.fillStyle='#1b3024';ctx.fillRect(0,0,d.w,d.h);
+// grandstands
+for(let row=0;row<5;row++){let y=top-48+row*10;ctx.fillStyle=row%2?'#34463b':'#293b32';ctx.fillRect(cx-w*.88,y,w*1.76,9);for(let i=0;i<30;i++){ctx.fillStyle=['#d8ff4f','#e6e9df','#e16e5b','#8ba5c2'][i%4];ctx.globalAlpha=.3;ctx.beginPath();ctx.arc(cx-w*.85+i*w*1.7/30,y+2,2.3,0,7);ctx.fill();ctx.globalAlpha=1}}
+ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(cx-w*.52,top);ctx.lineTo(cx+w*.52,top);ctx.lineTo(cx+w*.98,bot);ctx.lineTo(cx-w*.98,bot);ctx.closePath();ctx.fill();
+ctx.strokeStyle='#e8f0df';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(cx-w*.52,top);ctx.lineTo(cx-w*.52,bot);ctx.lineTo(cx+w*.52,bot);ctx.lineTo(cx+w*.52,top);ctx.stroke();
+function line(y){let p=project(.5,y);let width=w*(.52+y*.46);ctx.beginPath();ctx.moveTo(cx-width/2,p.y);ctx.lineTo(cx+width/2,p.y);ctx.stroke()}
+line(.5);ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bot);ctx.stroke();
+ctx.lineWidth=1.4;for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(cx+side*w*.26,top);ctx.lineTo(cx+side*w*.49,bot);ctx.stroke()}
+const ny=project(.5,.5).y;ctx.fillStyle='#dce6d9';ctx.fillRect(cx-w*.57,ny-4,w*1.14,8);ctx.strokeStyle='#65776a';ctx.lineWidth=1;for(let i=0;i<Math.floor(w/9);i++){ctx.beginPath();ctx.moveTo(cx-w*.57+i*9,ny-4);ctx.lineTo(cx-w*.57+i*9,ny+4);ctx.stroke()}ctx.strokeStyle='white';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-w*.57,ny-5);ctx.lineTo(cx+w*.57,ny-5);ctx.stroke();
+// glass rear wall
+ctx.fillStyle='#9bb7a455';ctx.fillRect(cx-w*.55,top-5,w*1.1,5);ctx.strokeStyle='#b8c9b8';ctx.strokeRect(cx-w*.55,top-18,w*1.1,18);
+}
+function drawPlayer(p,index){const q=project(p.x,p.y),d=dimensions(),scale=.6+p.y*.6;ctx.save();ctx.translate(q.x,q.y);ctx.scale(scale,scale);
+ctx.fillStyle='#07110c55';ctx.beginPath();ctx.ellipse(0,3,22,8,0,0,7);ctx.fill();
+// legs
+ctx.strokeStyle='#172019';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-7,-13);ctx.lineTo(-10,0);ctx.moveTo(7,-13);ctx.lineTo(10,0);ctx.stroke();
+// torso
+ctx.fillStyle=p.color;ctx.beginPath();ctx.roundRect(-13,-42,26,32,8);ctx.fill();
+// head
+ctx.fillStyle='#d7ae89';ctx.beginPath();ctx.arc(0,-49,10,0,7);ctx.fill();ctx.fillStyle='#47352c';ctx.beginPath();ctx.arc(0,-53,10,Math.PI,Math.PI*2);ctx.fill();
+// arm and racket
+let swing=p.swing>0?Math.sin(p.swing*Math.PI)*-.7:0;ctx.strokeStyle='#d7ae89';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(10,-35);ctx.lineTo(20+swing*12,-25);ctx.stroke();ctx.strokeStyle='#222a24';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(20+swing*12,-25);ctx.lineTo(29+swing*12,-8);ctx.stroke();ctx.strokeStyle='#e7eadd';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(31+swing*12,-2,7,11,-.3,0,7);ctx.stroke();ctx.restore()}
+function drawBall(){let q=project(ball.x,ball.y,ball.z);ctx.fillStyle='#0a120b55';ctx.beginPath();ctx.ellipse(q.x,q.y+ball.z*canvas.clientHeight*.55+5,7+ball.z*10,3,0,0,7);ctx.fill();ctx.fillStyle='#eaff63';ctx.shadowColor='#eaff63';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(q.x,q.y,6+ball.z*4,0,7);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#9ebd3b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(q.x,q.y,4,Math.PI*.2,Math.PI*1.2);ctx.stroke()}
+function update(dt){const d=dimensions(),speed=.00034*dt;
+players.forEach((p,i)=>{let dx=0,dy=0;if(i===0){dx=(keys.d?1:0)-(keys.a?1:0);dy=(keys.s?1:0)-(keys.w?1:0)}else if(mode==='duo'){dx=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);dy=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0)}else{let target=ball.x;p.x+=(target-p.x)*.018*dt;p.y=.16; if(ball.y<.48&&Math.abs(ball.x-p.x)<.11&&ball.z<.2&&Math.random()<.025)hit(1);return}
+p.x=clamp(p.x+dx*speed,.22,.78);p.y=clamp(p.y+dy*speed,i===0?.57:.08,i===0?.96:.43);p.swing=Math.max(0,(p.swing||0)-dt/18)});
+ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.z+=ball.vz*dt;ball.vz-=.00016*dt;ball.vx*=Math.pow(.999,dt);ball.vy*=Math.pow(.999,dt);
+if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.65;ball.bounces++;if(ball.bounces>1){point(ball.lastHit===0?1:0);return}}
+if(ball.x<.12||ball.x>.88){ball.x=clamp(ball.x,.12,.88);ball.vx*=-.85}
+if(ball.y<.02||ball.y>.98){point(ball.y<.02?0:1);return}
+if(pointTimer>0)pointTimer--;
+}
+function hit(i){let p=players[i];if(!p||p.swing>0)return;const dx=ball.x-p.x,dy=ball.y-p.y;if(Math.abs(dx)>.19||Math.abs(dy)>.23||ball.z>.3)return;p.swing=1;ball.vx=clamp(dx*.018+(i===0?.001:-.001),-.009,.009);ball.vy=i===0?-.0065:.0065;ball.vz=.006+Math.random()*.002;ball.lastHit=i;ball.bounces=0;toast()}
+function point(who){score[who]++;$('s1').textContent=score[0];$('s2').textContent=score[1];if(score[who]>=5){finish(who);return}resetBall(who===0?1:-1)}
+function toast(){const t=$('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),400)}
+function finish(who){running=false;$('winnerText').textContent=who===0?'¡VICTORIA!':'¡BUEN PARTIDO!';$('resultText').textContent=who===0?(mode==='duo'?'Jugador 1 se lleva el partido. ¡Qué nivel!':'Has ganado a la CPU. ¡Pista dominada!'):(mode==='duo'?'Jugador 2 se lleva el partido. ¡Partidazo!':'La CPU se lleva esta. ¿Te tomas la revancha?');$('resultOverlay').classList.add('show')}
+function render(){drawCourt();players.forEach(drawPlayer);drawBall()}
+function loop(t){if(!running)return;let dt=Math.min(2.2,(t-last)/16.67||1);last=t;if(!paused)update(dt);render();raf=requestAnimationFrame(loop)}
+function pause(){paused=!paused;$('pauseOverlay').classList.toggle('show',paused);$('pauseBtn').textContent=paused?'▶ SEGUIR':'Ⅱ PAUSA';if(paused){}else last=performance.now()}
+function goHome(){running=false;cancelAnimationFrame(raf);$('game').classList.remove('active');$('pauseOverlay').classList.remove('show');$('resultOverlay').classList.remove('show');$('home').classList.add('active')}
+$('playBtn').onclick=()=>$('modes').classList.add('active');$('howBtn').onclick=()=>alert('Mueve a tu jugador con WASD y golpea con F cuando la bola esté cerca. En modo dúo, el segundo jugador usa las flechas y golpea con M. Gana quien llegue primero a 5 puntos.');
+$('backHome').onclick=()=>{$('modes').classList.remove('active')};$('soloBtn').onclick=()=>start('solo');$('duoBtn').onclick=()=>start('duo');$('pauseBtn').onclick=pause;$('resumeBtn').onclick=pause;$('exitBtn').onclick=goHome;$('pauseExit').onclick=goHome;$('menuBtn').onclick=goHome;$('againBtn').onclick=()=>start(mode);
+window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.length===1?e.key.toLowerCase():e.key]=true;if(e.repeat)return;if(e.key.toLowerCase()==='f')hit(0);if(e.key.toLowerCase()==='m'&&mode==='duo')hit(1);if(e.key==='Escape'&&$('game').classList.contains('active'))pause()});
+window.addEventListener('keyup',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
+})();
+</script></body></html>
