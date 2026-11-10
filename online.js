@@ -125,6 +125,7 @@ async function joinPrivateRoom() {
 }
 
 let activeChampionship=null;
+let renderedLobbyPlayers="", renderedBracketData="";
 function renderChampLobby(champ,players){
  activeChampionship=champ;
  $("champOptions").hidden=true;$("privateOptions").hidden=true;$("tournamentLobby").hidden=false;
@@ -132,18 +133,34 @@ function renderChampLobby(champ,players){
  $("tourneyCode").textContent="CÓDIGO · "+champ.code;
  const max=Number(champ.maxPlayers)||8;
  $("tourneyCount").textContent=players.length+" / "+max;
- $("tourneyMembers").innerHTML="";
- for(let i=0;i<max;i++){
-  const p=players[i],card=document.createElement("div");
-  card.className="tourneyMember"+(p?"":" empty");
-  const avatar=document.createElement("div");avatar.className="tourneyAvatar";avatar.textContent=p?(p.name||"J").trim().charAt(0).toUpperCase():"＋";
-  const name=document.createElement("strong");name.textContent=p?(p.name||"Jugador"):"PLAZA LIBRE";
-  card.append(avatar,name);$("tourneyMembers").append(card);
+ const playerSignature=JSON.stringify(players.map(p=>({id:p.id,name:p.name})))+"|"+max;
+ if(playerSignature!==renderedLobbyPlayers){
+  const grid=$("tourneyMembers");
+  for(let i=0;i<max;i++){
+   const p=players[i],old=grid.children[i];
+   if(old && old.dataset.playerId===(p?.id||"")){
+    old.querySelector(".tourneyAvatar").textContent=p?(p.name||"J").trim().charAt(0).toUpperCase():"＋";
+    old.querySelector("strong").textContent=p?(p.name||"Jugador"):"PLAZA LIBRE";
+    continue;
+   }
+   const card=document.createElement("div");
+   card.className="tourneyMember"+(p?"":" empty");
+   card.dataset.playerId=p?.id||"";
+   const avatar=document.createElement("div");avatar.className="tourneyAvatar";avatar.textContent=p?(p.name||"J").trim().charAt(0).toUpperCase():"＋";
+   const name=document.createElement("strong");name.textContent=p?(p.name||"Jugador"):"PLAZA LIBRE";
+   card.append(avatar,name);
+   if(old)grid.replaceChild(card,old);else grid.append(card);
+  }
+  while(grid.children.length>max)grid.lastElementChild.remove();
+  renderedLobbyPlayers=playerSignature;
  }
  const isHost=champ.hostId===user.$id;
- $("tourneyStart").hidden=!isHost||champ.status!=="waiting"||players.length!==max;
+ $("tourneyStart").hidden=!isHost;
+ $("tourneyStart").disabled=!isHost||champ.status!=="waiting"||players.length<4||players.length!==max;
+ $("tourneyStart").style.opacity=$("tourneyStart").disabled?".32":"1";
+ $("tourneyStart").style.cursor=$("tourneyStart").disabled?"not-allowed":"pointer";
  $("tourneyNote").textContent=champ.status==="waiting"?(isHost?(players.length===max?"¡Todos listos! Puedes iniciar el sorteo.":"Comparte el código. El torneo comienza cuando se completen las plazas."):"Esperando a que el anfitrión inicie el torneo…"):"Sorteo realizado. Preparando el cuadro de eliminatorias.";
- if(champ.bracket){try{renderBracket(JSON.parse(champ.bracket))}catch{}}
+ if(champ.bracket){try{const sig=champ.bracket;if(sig!==renderedBracketData){renderBracket(JSON.parse(sig));renderedBracketData=sig}}catch{}}
 }
 function renderBracket(bracket){
  const root=$("tourneyBracket");root.hidden=false;root.innerHTML="";
@@ -161,7 +178,7 @@ async function startChampionship(){
  try{
   const latest=await db.getRow({databaseId:DATABASE_ID,tableId:"championships",rowId:activeChampionship.$id});
   const players=JSON.parse(latest.players||"[]");
-  if(players.length!==Number(latest.maxPlayers))return status("Faltan participantes para iniciar el torneo.","error");
+  if(Number(latest.maxPlayers)<4||players.length<4||players.length!==Number(latest.maxPlayers))return status("El torneo necesita al menos 4 jugadores y todas las plazas completas.","error");
   const shuffled=[...players].sort(()=>Math.random()-.5),first=[];
   for(let i=0;i<shuffled.length;i+=2)first.push({a:shuffled[i],b:shuffled[i+1],winner:null,matchId:null});
   const bracket={rounds:[first],champion:null,pointsToWin:5,winBy:2,startedAt:new Date().toISOString()};
@@ -184,6 +201,7 @@ async function createChampionship(){
  const championshipName=$("champName").value.trim().replace(/\\s+/g," ");
  if(championshipName.length<3||championshipName.length>48)return status("Pon un nombre de campeonato de entre 3 y 48 caracteres.","error");
  const maxPlayers=Number($("champSize").value),code=code6(),now=new Date().toISOString(),player={id:user.$id,name:cleanName()};
+ if(![4,8,16,32].includes(maxPlayers))return status("El torneo debe tener un mínimo de 4 jugadores.","error");
  try{
   const champ=await db.createRow({databaseId:DATABASE_ID,tableId:"championships",rowId:ID.unique(),data:{code,championshipName,hostId:user.$id,hostName:player.name,status:"waiting",maxPlayers,playerIds:JSON.stringify([user.$id]),players:JSON.stringify([player]),bracket:"",createdAt:now},permissions:ownerPerms(user.$id)});
   renderChampLobby(champ,[player]);status("Torneo creado. Comparte el código para reunir a los participantes.","success");
