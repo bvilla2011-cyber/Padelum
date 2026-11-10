@@ -51,8 +51,6 @@ async function sendCode(userId, email) {
 async function enterGame(user) {
   currentUser = user;
   $("authGate").hidden = true;
-  $("accountOpen").textContent = "CUENTA · " + (user.email || "ACTIVA");
-  $("accountOpen").onclick = openAccount;
 }
 function openAccount() {
   if (!currentUser) return;
