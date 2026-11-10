@@ -1,12 +1,19 @@
-import { Client, Account, TablesDB, ID, Query, Permission, Role } from "https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm";
+let Client, Account, TablesDB, ID, Query, Permission, Role;
+let client, account, db;
 
 const PROJECT_ID = "padelum-online";
 const DATABASE_ID = "padelum_online_db";
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
+function setConnection(message, kind = "") {
+  const pill = $("connectionPill");
+  if (!pill) return;
+  pill.querySelector("span").textContent = message;
+  const dot = pill.querySelector("i");
+  dot.style.background = kind === "success" ? "#a9d85a" : kind === "error" ? "#f07868" : "#d5ad4b";
+  dot.style.boxShadow = kind === "success" ? "0 0 12px #a9d85a" : kind === "error" ? "0 0 12px #f07868" : "0 0 12px #d5ad4b";
+}
 const $ = (id) => document.getElementById(id);
-const client = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
-const account = new Account(client);
-const db = new TablesDB(client);
+// Appwrite SDK is loaded asynchronously in boot() so startup errors can be shown in the menu.
 let user = null;
 let currentPoll = null;
 let activeRoom = null;
@@ -16,6 +23,9 @@ function status(message, kind = "") {
   if (!el) return;
   el.textContent = message;
   el.className = "onlineStatus" + (kind ? " " + kind : "");
+  if (kind === "success") setConnection("CONECTADO", "success");
+  else if (kind === "error") setConnection("SIN CONEXIÓN", "error");
+  else setConnection("CONECTANDO", "");
 }
 function showCode(code, label) {
   const el = $("onlineCodeCard");
@@ -218,13 +228,44 @@ async function matchmaking() {
   }, 1300);
 }
 
-$("onlineCreate").addEventListener("click", createPrivateRoom);
-$("onlineJoin").addEventListener("click", joinPrivateRoom);
-$("onlineRandom").addEventListener("click", matchmaking);
-$("champCreate").addEventListener("click", createChampionship);
-$("champJoin").addEventListener("click", joinChampionship);
-$("onlineBack").addEventListener("click", () => { stopPolling(); clearCode(); });
-$("onlineCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
-$("champCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
-
-ensureAuth().catch(e => status("No se pudo conectar con PADELUM Online: " + e.message, "error"));
+function bindUI() {
+  $("onlineCreate").addEventListener("click", () => {
+    $("privateOptions").hidden = false; $("champOptions").hidden = true; $("onlineCodeCard").hidden = true;
+    $("privateOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  $("privateCreateBtn").addEventListener("click", createPrivateRoom);
+  $("onlineJoin").addEventListener("click", joinPrivateRoom);
+  $("onlineRandom").addEventListener("click", matchmaking);
+  $("champOpen").addEventListener("click", () => {
+    $("champOptions").hidden = false; $("privateOptions").hidden = true; $("onlineCodeCard").hidden = true;
+    $("champOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  $("champCreate").addEventListener("click", createChampionship);
+  $("champJoin").addEventListener("click", joinChampionship);
+  $("onlineBack").addEventListener("click", () => { stopPolling(); clearCode(); $("privateOptions").hidden = true; $("champOptions").hidden = true; });
+  document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => { $(button.dataset.close).hidden = true; }));
+  $("onlineCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
+  $("champCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
+}
+async function boot() {
+  status("Cargando el servicio de juego…");
+  try {
+    let sdk;
+    try { sdk = await import("https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm"); }
+    catch (firstError) { console.warn("CDN principal no disponible; probando alternativa", firstError); sdk = await import("https://esm.sh/appwrite@17.0.0?bundle"); }
+    ({ Client, Account, TablesDB, ID, Query, Permission, Role } = sdk);
+    if (!Client || !Account || !TablesDB) throw new Error("El SDK de Appwrite no contiene los módulos necesarios.");
+    client = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
+    account = new Account(client); db = new TablesDB(client);
+    status("Conectando con el servidor de Frankfurt…");
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("La conexión tarda demasiado. Comprueba internet y que Appwrite permita sesiones anónimas.")), 12000));
+    await Promise.race([ensureAuth(), timeout]);
+    bindUI();
+  } catch (e) {
+    console.error("PADELUM Online boot error:", e);
+    status("No se pudo iniciar PADELUM Online: " + (e?.message || String(e)), "error");
+    setConnection("ERROR DE CONEXIÓN", "error");
+    bindUI();
+  }
+}
+boot();
