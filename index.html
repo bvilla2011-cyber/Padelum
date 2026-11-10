@@ -343,4 +343,4 @@ $('help').onclick=()=>alert('Jugador 1: WASD para moverte, F para golpear, ESPAC
 window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();let k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=true;if(e.repeat)return;if(k==='f')hit(0);if(k==='t')hit(0,true);if(k==='m'&&mode==='duo')hit(1);if(k==='Escape'&&$('game').classList.contains('active'))pauseGame()});window.addEventListener('keyup',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
 setTimeout(()=>$('intro')?.remove(),2200);
 })();
-</script><script type="module" src="./auth.js"></script></body></html>
+</script><script type="module" src="./auth.js?v=20261110-2"></script></body></html>
