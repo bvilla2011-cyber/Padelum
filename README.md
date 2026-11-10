@@ -1,1 +1,1 @@
-# Padelum
+# EzyPadel
