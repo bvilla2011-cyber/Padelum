@@ -52,11 +52,19 @@ async function ensureAuth() {
   $("onlineName").value = user.name || localStorage.getItem("padelum-player-name") || "";
   status("Conectado a PADELUM Online · cuenta verificada", "success");
 }
-window.addEventListener("padelum:authenticated", event => {
+let uiBound = false;
+let sdkReady = false;
+window.addEventListener("padelum:authenticated", async event => {
   if (!event.detail?.user) return;
-  user = event.detail.user;
-  $("onlineName").value = user.name || localStorage.getItem("padelum-player-name") || "";
-  status("Conectado a PADELUM Online · cuenta verificada", "success");
+  if (!sdkReady) {
+    status("Cuenta iniciada. Terminando de conectar con el servidor…");
+    return;
+  }
+  try { await ensureAuth(); }
+  catch (e) {
+    console.error("PADELUM Online auth refresh:", e);
+    status("Cuenta iniciada, pero el servidor rechazó la sesión: " + (e?.message || String(e)), "error");
+  }
 });
 function saveName() { localStorage.setItem("padelum-player-name", cleanName()); }
 
@@ -262,22 +270,32 @@ function bindUI() {
 async function boot() {
   status("Cargando el servicio de juego…");
   try {
-    let sdk;
-    try { sdk = await import("https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm"); }
-    catch (firstError) { console.warn("CDN principal no disponible; probando alternativa", firstError); sdk = await import("https://esm.sh/appwrite@17.0.0?bundle"); }
+    // Mismo SDK que auth.js para compartir la sesión sin incompatibilidades.
+    const sdk = await import("https://cdn.jsdelivr.net/npm/appwrite@28.0.0/+esm");
     ({ Client, Account, TablesDB, ID, Query, Permission, Role } = sdk);
     if (!Client || !Account || !TablesDB) throw new Error("El SDK de Appwrite no contiene los módulos necesarios.");
     client = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
-    account = new Account(client); db = new TablesDB(client);
-    status("Conectando con el servidor de Frankfurt…");
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("La conexión tarda demasiado. Comprueba internet y que Appwrite permita sesiones anónimas.")), 12000));
-    await Promise.race([ensureAuth(), timeout]);
-    bindUI();
+    account = new Account(client);
+    db = new TablesDB(client);
+    sdkReady = true;
+    if (!uiBound) { bindUI(); uiBound = true; }
+    // El cliente online se prepara aunque todavía no haya sesión iniciada.
+    try {
+      await ensureAuth();
+    } catch (authError) {
+      console.warn("PADELUM Online espera a la autenticación:", authError);
+      setConnection("INICIA SESIÓN", "");
+      const el = $("onlineStatus");
+      if (el) {
+        el.textContent = "Servidor disponible. Inicia sesión con tu cuenta verificada para jugar online.";
+        el.className = "onlineStatus";
+      }
+    }
   } catch (e) {
     console.error("PADELUM Online boot error:", e);
-    status("No se pudo iniciar PADELUM Online: " + (e?.message || String(e)), "error");
-    setConnection("ERROR DE CONEXIÓN", "error");
-    bindUI();
+    status("No se pudo cargar el servicio online: " + (e?.message || String(e)), "error");
+    setConnection("ERROR DE SERVICIO", "error");
+    if (!uiBound) { bindUI(); uiBound = true; }
   }
 }
 boot();
