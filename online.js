@@ -250,7 +250,6 @@ let pvpQueueRow=null,pvpStartedAt=0,pvpActive=false,pvpPollBusy=false;
 function formatPvpTime(seconds){return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")}
 function updatePvpTimer(){if(!pvpActive)return;const elapsed=Math.floor((Date.now()-pvpStartedAt)/1000);$("pvpTimer").textContent=formatPvpTime(elapsed);$("pvpSearchHint").textContent=elapsed>=45?"No encontramos rival. Pulsa «JUGAR CONTRA CPU» o cancela para salir.":"Buscando rival… "+(45-elapsed)+" s para activar la opción de CPU."}
 async function cancelPvpSearch(){
- if(!pvpActive&& !pvpQueueRow)return;
  pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;
  if(row&&db){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch(e){console.warn("Queue cleanup:",e)}}
  $("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Búsqueda cancelada. No se iniciará ninguna CPU.";
