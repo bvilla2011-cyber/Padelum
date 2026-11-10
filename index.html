@@ -1,117 +1,124 @@
 <!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>PADELUM — Court Club</title>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#07110f"><title>PADELUM — Court Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap');
-:root{--lime:#d8ff4f;--ink:#101714;--cream:#f3f1e8}
-*{box-sizing:border-box}body{margin:0;background:#101714;color:var(--cream);font-family:'DM Sans',sans-serif;overflow:hidden}
-button{font:inherit;cursor:pointer;border:0}
-#app{height:100dvh;min-height:500px;position:relative;background:radial-gradient(ellipse at 50% 38%,#34463a,#111a16 70%);overflow:hidden}
-.topbar{position:absolute;z-index:5;top:0;left:0;right:0;padding:23px 5vw;display:flex;justify-content:space-between;align-items:center}
-.brand{font:900 30px 'Barlow Condensed';letter-spacing:2px}.brand span{color:var(--lime)}.top-note{font-size:10px;letter-spacing:3px;color:#a6b4a9;font-weight:700}
-.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:90px 20px 30px}.screen.active{display:flex}
-.menu-wrap{width:min(1080px,100%);display:grid;grid-template-columns:1.05fr .95fr;gap:35px;align-items:center}
-.eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:4px;margin-bottom:15px}
-h1{font:900 clamp(65px,10vw,132px)/.78 'Barlow Condensed';letter-spacing:-3px;margin:0 0 25px;text-transform:uppercase}
-h1 em{font-style:normal;color:var(--lime)}
-.lead{color:#b8c4ba;line-height:1.7;max-width:420px;font-size:14px}
-.actions{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
-.btn{padding:16px 25px;font-weight:900;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;border-radius:5px;transition:.2s}
-.btn.primary{background:var(--lime);color:#111a13;box-shadow:0 6px 0 #8da92e}.btn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 0 #8da92e}
-.btn.ghost{border:1px solid #59665c;background:#1a251e;color:#f3f1e8}.btn.ghost:hover{border-color:var(--lime);color:var(--lime)}
-.preview{height:min(510px,58vh);min-height:300px;position:relative;border:1px solid #4a5b4d;border-radius:8px;overflow:hidden;background:linear-gradient(#35483a,#19271e)}
-.preview:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 28px,#ffffff08 29px 30px)}
-.mini-court{position:absolute;left:17%;right:17%;top:10%;bottom:8%;border:3px solid #d7e2d3;border-bottom-width:5px;background:linear-gradient(90deg,#377b60,#438b69 50%,#377b60);transform:perspective(450px) rotateX(10deg);box-shadow:0 0 0 7px #253c30}
-.mini-court:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid white}.mini-court:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid white}
-.mini-net{position:absolute;left:12%;right:12%;top:49%;height:13px;background:repeating-linear-gradient(90deg,#dfe6d9 0 2px,#7f9587 2px 5px);border-block:2px solid white;z-index:2}
-.mini-player{position:absolute;bottom:7%;left:50%;transform:translateX(-50%);width:55px;height:83px;z-index:3}
-.mini-player:before{content:"";position:absolute;bottom:0;left:11px;width:34px;height:48px;border-radius:15px 15px 8px 8px;background:#d8ff4f}
-.mini-player:after{content:"";position:absolute;bottom:40px;left:16px;width:25px;height:25px;border-radius:50%;background:#d9b18b;box-shadow:19px 26px 0 -8px #d8ff4f}
-.mini-ball{position:absolute;top:42%;left:58%;width:13px;height:13px;border-radius:50%;background:#e5ff5b;box-shadow:0 0 20px #e5ff5b;z-index:4}
-.preview-label{position:absolute;bottom:18px;left:20px;font:800 12px 'Barlow Condensed';letter-spacing:2px}
-.mode-panel{width:min(560px,100%);background:#19231d;border:1px solid #465749;padding:34px;border-radius:8px}
-.mode-panel h2{font:800 42px 'Barlow Condensed';margin:0 0 8px}.mode-panel p{color:#aebbb0;font-size:13px;line-height:1.6}
-.mode-choice{display:flex;align-items:center;justify-content:space-between;padding:18px;border:1px solid #435347;border-radius:5px;margin-top:12px;background:#202d24;color:white;text-align:left;width:100%}
-.mode-choice:hover{border-color:var(--lime);background:#29392d}.mode-choice strong{font:800 23px 'Barlow Condensed';display:block}.mode-choice small{color:#aebbb0;font-size:11px}.arrow{color:var(--lime);font-size:25px}
-#game{position:absolute;inset:0;display:none;background:#18251d}#game.active{display:block}canvas{width:100%;height:100%;display:block}
-.hud{position:absolute;z-index:4;top:18px;left:0;right:0;display:flex;justify-content:center;gap:12px;pointer-events:none}
-.scorebox{background:#111a15eF;border:1px solid #566653;border-radius:6px;padding:9px 19px;min-width:100px;text-align:center;backdrop-filter:blur(8px)}
-.scorebox small{display:block;color:#a9b8a9;font-size:9px;letter-spacing:2px;font-weight:800}.scorebox strong{font:800 32px 'Barlow Condensed';color:var(--lime)}
-.hud-actions{position:absolute;right:18px;top:18px;display:flex;gap:8px;pointer-events:auto}.hud-actions button{background:#111a15dd;color:white;border:1px solid #627062;border-radius:4px;padding:10px 13px;font-size:10px;font-weight:800;letter-spacing:1px}
-.controls{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);background:#101914d9;border:1px solid #536052;border-radius:5px;padding:9px 15px;color:#d1dbd0;font-size:10px;white-space:nowrap;pointer-events:none}
-.overlay{position:absolute;inset:0;background:#08100dcc;display:none;align-items:center;justify-content:center;z-index:8;padding:20px;text-align:center;backdrop-filter:blur(7px)}.overlay.show{display:flex}
-.result-card{width:min(430px,100%);padding:40px 30px;background:#1b2820;border:1px solid #66765c;border-radius:8px}
-.result-card .trophy{font-size:48px}.result-card h2{font:900 65px/.9 'Barlow Condensed';margin:12px 0;color:var(--lime)}.result-card p{color:#c1ccc0;font-size:13px}
-.result-card .actions{justify-content:center}
-.toast{position:absolute;top:95px;left:50%;transform:translateX(-50%);background:#d8ff4f;color:#142016;padding:8px 14px;font-size:10px;font-weight:900;letter-spacing:2px;border-radius:3px;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1}
-@media(max-width:760px){.menu-wrap{grid-template-columns:1fr;gap:22px}.preview{height:260px;min-height:0;order:-1}.menu-copy{text-align:center}.lead{margin:auto}.actions{justify-content:center}.topbar{padding:16px 20px}.top-note{font-size:8px}.screen{padding-top:70px}.mode-panel{padding:24px}.controls{font-size:8px;bottom:8px}.hud-actions{top:65px;right:10px}.scorebox{min-width:75px;padding:6px 12px}.scorebox strong{font-size:25px}}
-</style>
-</head>
-<body><div id="app">
-<header class="topbar"><div class="brand">PADE<span>LUM</span></div><div class="top-note">COURT CLUB · EST. 2026</div></header>
-<section id="home" class="screen active"><div class="menu-wrap"><div class="menu-copy"><div class="eyebrow">TU PISTA. TUS REGLAS.</div><h1>PLAY<br><em>THE</em><br>POINT.</h1><p class="lead">Entra en la pista. Lee el rebote, prepara el golpe y gana el punto. Un pequeño juego de pádel para retar a la máquina o a quien tengas al lado.</p><div class="actions"><button class="btn primary" id="playBtn">JUGAR AHORA ↗</button><button class="btn ghost" id="howBtn">CÓMO JUGAR</button></div></div><div class="preview"><div class="mini-court"></div><div class="mini-net"></div><div class="mini-player"></div><div class="mini-ball"></div><div class="preview-label">CENTRE COURT · MATCH POINT</div></div></div></section>
-<section id="modes" class="screen"><div class="mode-panel"><div class="eyebrow">ELIGE TU PARTIDO</div><h2>¿CON QUIÉN JUEGAS?</h2><p>Partidas rápidas a cinco puntos. Mantén la posición, espera a que la bola llegue y pulsa para devolverla.</p><button class="mode-choice" id="soloBtn"><span><strong>01 / CONTRA LA CPU</strong><small>Tú contra un rival controlado por el juego · WASD + F</small></span><span class="arrow">↗</span></button><button class="mode-choice" id="duoBtn"><span><strong>02 / DOS JUGADORES</strong><small>Dos personas · mismo teclado · misma pista</small></span><span class="arrow">↗</span></button><button class="btn ghost" id="backHome" style="margin-top:20px">← VOLVER</button></div></section>
-<div id="game"><canvas id="court"></canvas><div class="hud"><div class="scorebox"><small>JUGADOR 1</small><strong id="s1">0</strong></div><div class="scorebox"><small>SETS · PUNTOS</small><strong style="font-size:18px;padding-top:7px">PADELUM</strong></div><div class="scorebox"><small id="p2name">CPU</small><strong id="s2">0</strong></div></div><div class="hud-actions"><button id="pauseBtn">Ⅱ PAUSA</button><button id="exitBtn">✕ SALIR</button></div><div class="controls" id="controlText">WASD MOVER · F GOLPEAR</div><div class="toast" id="toast">¡BUEN GOLPE!</div></div>
-<div class="overlay" id="pauseOverlay"><div class="result-card"><div class="eyebrow">PARTIDO EN PAUSA</div><h2>TAKE<br>A BREATH.</h2><div class="actions"><button class="btn primary" id="resumeBtn">CONTINUAR</button><button class="btn ghost" id="pauseExit">MENÚ</button></div></div></div>
-<div class="overlay" id="resultOverlay"><div class="result-card"><div class="trophy">🏆</div><div class="eyebrow">FINAL DEL PARTIDO</div><h2 id="winnerText">¡VICTORIA!</h2><p id="resultText">Has dominado la pista.</p><div class="actions"><button class="btn primary" id="againBtn">OTRA PARTIDA ↻</button><button class="btn ghost" id="menuBtn">MENÚ PRINCIPAL</button></div></div></div>
+:root{--acid:#e7ff59;--hot:#ff557c;--electric:#6cf6ff;--violet:#a98bff;--ink:#07110f;--panel:#0c1b17;--line:#3c6154}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050b09;color:#f5f4e9;font-family:'DM Sans',sans-serif}button{font:inherit;cursor:pointer}
+.intro-splash{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#263b5b,#101a2d 36%,#05070d 78%);animation:introFade 3.35s cubic-bezier(.7,0,.25,1) forwards;pointer-events:none}
+.intro-grid{position:absolute;inset:-30%;opacity:.22;background-image:linear-gradient(#75eaff22 1px,transparent 1px),linear-gradient(90deg,#75eaff22 1px,transparent 1px);background-size:48px 48px;transform:perspective(450px) rotateX(62deg) scale(1.6)}
+.intro-scan{position:absolute;inset:-100% 0;background:linear-gradient(transparent 48%,#7ffaff1c 50%,transparent 52%);background-size:100% 12px;animation:scanDrop 1.8s linear infinite}
+.intro-logo{position:relative;text-align:center;animation:logoRise 2.6s cubic-bezier(.16,1,.3,1) both}.intro-sigil{font-size:clamp(42px,8vw,90px);color:var(--acid);text-shadow:0 0 15px #e7ff59,0 0 65px #b8ff4c99;animation:sigilSpin 2.8s ease-out both}
+.intro-title{font-size:clamp(42px,10vw,104px);line-height:.78;font-weight:1000;letter-spacing:-.075em;color:#f5f1e6;text-shadow:5px 5px 0 #ff557c,-5px -4px 0 #5cecff,0 0 55px #7ceeff66}.intro-title span{color:var(--acid)}.intro-title em{font-style:normal;color:var(--acid);font-size:.76em;letter-spacing:.12em}
+.intro-rule{display:flex;align-items:center;gap:12px;margin:25px auto 16px;color:#a7e8ed;font-size:9px;letter-spacing:3px}.intro-rule i{width:48px;height:2px;background:var(--hot);box-shadow:0 0 9px var(--hot)}.intro-credit{font-size:11px;letter-spacing:5px;color:#b8c8d9}.intro-credit strong{color:var(--acid)}
+.intro-coordinates{position:absolute;bottom:24px;left:25px;color:#66849b;font:9px monospace;letter-spacing:2px}
+@keyframes introFade{0%,72%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}@keyframes logoRise{0%{opacity:0;transform:translateY(32px) scale(.82);filter:blur(12px)}18%{opacity:1;filter:blur(0)}100%{opacity:1;transform:translateY(0) scale(1)}}@keyframes sigilSpin{0%{transform:rotate(-90deg) scale(.2)}65%{transform:rotate(18deg) scale(1.15)}100%{transform:rotate(0) scale(1)}}@keyframes scanDrop{to{transform:translateY(100%)}}
+@media(prefers-reduced-motion:reduce){.intro-splash,.intro-logo,.intro-sigil{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+#app{width:100vw;height:100dvh;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#183b30,#07110f 70%)}
+.topbar{position:absolute;z-index:10;top:0;left:0;right:0;height:68px;padding:0 4vw;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff12;background:linear-gradient(#06110ee8,#06110e00)}
+.brand{font:900 30px/.8 'Barlow Condensed';letter-spacing:2px}.brand span{color:var(--acid)}.topmeta{font-size:9px;font-weight:800;letter-spacing:3px;color:#91a99c}
+.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:80px 4vw 30px}.screen.active{display:flex}
+.home-layout{width:min(1320px,100%);display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:center}
+.kicker{font-size:10px;font-weight:900;letter-spacing:4px;color:var(--acid);margin-bottom:17px}
+.hero-title{font:900 clamp(76px,10vw,148px)/.72 'Barlow Condensed';letter-spacing:-.045em;margin:0;text-transform:uppercase;text-shadow:6px 7px 0 #0008}.hero-title em{font-style:normal;color:var(--acid)}.hero-copy{max-width:480px;color:#a9beb1;line-height:1.75;font-size:14px;margin:25px 0}
+.btn{border:0;border-radius:3px;padding:16px 25px;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;transition:transform .18s,filter .18s}.btn:hover{transform:translateY(-3px);filter:brightness(1.08)}.primary{background:var(--acid);color:#10170d;box-shadow:0 5px 0 #9ebd35}.secondary{background:#172b23;color:#e9f1e8;border:1px solid #557162}.button-row{display:flex;gap:12px;flex-wrap:wrap}
+.hero-art{height:min(62vh,590px);min-height:350px;position:relative;overflow:hidden;border:1px solid #547464;background:linear-gradient(155deg,#263e31,#0c1712);box-shadow:18px 18px 0 #0005}
+.hero-art:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 20%,#ffffff08 50%,transparent 70%),repeating-linear-gradient(0deg,transparent 0 40px,#ffffff08 41px)}
+.art-court{position:absolute;left:18%;right:18%;top:9%;bottom:8%;background:linear-gradient(90deg,#24664b,#3c9569 50%,#24664b);border:4px solid #e7f0db;transform:perspective(650px) rotateX(12deg);box-shadow:0 0 0 9px #182b20,0 20px 50px #0009}
+.art-court:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:3px solid #eff5e7}.art-court:after{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:2px solid #eff5e7}
+.art-net{position:absolute;left:13%;right:13%;top:50%;height:12px;transform:translateY(-50%);background:repeating-linear-gradient(90deg,#e7eee0 0 2px,#789181 2px 5px);border-block:2px solid #fff;z-index:2}
+.art-person{position:absolute;bottom:6%;left:50%;width:75px;height:150px;transform:translateX(-50%);z-index:3}.art-person:before{content:"";position:absolute;bottom:0;left:15px;width:46px;height:92px;background:linear-gradient(90deg,#a8c83b,#e7ff59);border:4px solid #132018;border-radius:22px 22px 10px 10px}.art-person:after{content:"";position:absolute;top:5px;left:24px;width:30px;height:30px;border-radius:50%;background:#d9ae89;border:3px solid #132018;box-shadow:18px 90px 0 -9px #d8ff59}
+.art-ball{position:absolute;left:59%;top:43%;width:15px;height:15px;border-radius:50%;background:#edff66;box-shadow:0 0 25px #edff66;z-index:4;animation:ballFloat 1.5s ease-in-out infinite alternate}
+@keyframes ballFloat{to{transform:translate(25px,-35px)}}
+.art-stamp{position:absolute;left:20px;bottom:18px;font:800 11px 'Barlow Condensed';letter-spacing:3px;color:#d9e9db}.art-stamp b{color:var(--acid)}
+.menu-card{width:min(560px,100%);padding:38px;background:linear-gradient(145deg,#14271f,#09130f);border:1px solid #4e6b5b;box-shadow:14px 14px 0 #0005}.menu-card h2{font:900 clamp(42px,5vw,64px)/.9 'Barlow Condensed';margin:0 0 12px}.menu-card p{color:#a9bdb0;line-height:1.65;font-size:13px}
+.choice{display:flex;width:100%;align-items:center;justify-content:space-between;text-align:left;padding:17px 19px;margin-top:12px;background:#1b3025;border:1px solid #476653;color:white}.choice:hover{border-color:var(--acid);background:#243c2c}.choice strong{font:800 25px 'Barlow Condensed';display:block}.choice small{color:#9fb5a6;font-size:11px}.choice i{font-style:normal;font-size:24px;color:var(--acid)}
+#game{position:absolute;inset:0;display:none;background:#07110f}#game.active{display:block}canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;z-index:4;top:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;pointer-events:none}.score-card{min-width:122px;text-align:center;padding:9px 18px 7px;background:#08140fee;border:1px solid #5d7c68;box-shadow:0 5px 18px #0007}.score-card small{display:block;color:#9fb5a4;font-size:9px;font-weight:900;letter-spacing:2px}.score-card strong{font:900 36px/.95 'Barlow Condensed';color:var(--acid)}.score-mid{font:900 17px 'Barlow Condensed';color:#d5e1d6;letter-spacing:2px;padding:0 10px}
+.game-tools{position:absolute;z-index:5;right:22px;top:19px;display:flex;gap:8px}.game-tools button{padding:10px 13px;background:#091610eF;border:1px solid #536c5b;color:#eaf2e9;font-size:10px;font-weight:900;letter-spacing:1px}
+.controls{position:absolute;z-index:4;bottom:14px;left:50%;transform:translateX(-50%);padding:9px 16px;background:#08140ee8;border:1px solid #405a49;color:#c6d6c9;font-size:10px;letter-spacing:.5px;white-space:nowrap;pointer-events:none}
+.toast{position:absolute;z-index:5;top:105px;left:50%;transform:translateX(-50%);padding:9px 18px;background:var(--acid);color:#10170e;font-size:10px;font-weight:1000;letter-spacing:3px;opacity:0;transition:opacity .2s;pointer-events:none}.toast.show{opacity:1}
+.overlay{position:absolute;z-index:9;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:#020906d9;backdrop-filter:blur(8px);text-align:center}.overlay.show{display:flex}.result-card{width:min(460px,100%);padding:40px 32px;background:linear-gradient(145deg,#172d22,#09140f);border:1px solid #71845a;box-shadow:0 25px 80px #000b}.result-card .trophy{font-size:45px}.result-card h2{font:900 72px/.85 'Barlow Condensed';color:var(--acid);margin:15px 0}.result-card p{color:#b4c5b7;font-size:13px;line-height:1.6}.result-card .button-row{justify-content:center;margin-top:22px}
+.rotate-hint{display:none}
+@media(max-width:850px){.home-layout{grid-template-columns:1fr;gap:20px}.hero-art{display:none}.home-layout>div:first-child{text-align:center}.hero-copy{margin:20px auto}.button-row{justify-content:center}.hero-title{font-size:clamp(76px,17vw,125px)}}
+@media(orientation:portrait) and (max-width:900px){.rotate-hint{display:block;position:absolute;z-index:30;inset:0;background:#07110f;display:grid;place-items:center;text-align:center;padding:30px;color:#e8f1e8}.rotate-hint strong{font:900 35px 'Barlow Condensed';display:block;color:var(--acid)}}
+@media(max-height:560px){.screen{padding-top:60px;padding-bottom:12px}.hero-art{height:65vh;min-height:250px}.hero-title{font-size:clamp(64px,9vw,105px)}.hero-copy{margin:15px 0}}
+</style></head><body><div id="app">
+<div id="introSplash" class="intro-splash"><div class="intro-grid"></div><div class="intro-scan"></div><div class="intro-logo"><div class="intro-sigil">✦</div><div class="intro-title">PADE<span>LUM</span><br><em>COURT CLUB</em></div><div class="intro-rule"><i></i><b>RACKET SPORTS · MATCH PROTOCOL</b><i></i></div><div class="intro-credit">BY <strong>UniFormerStudio</strong> · <strong>@bvilla</strong></div></div><div class="intro-coordinates">PADEL / COURT 01 / EST. 2026</div></div>
+<header class="topbar"><div class="brand">PADE<span>LUM</span></div><div class="topmeta">COURT CLUB · EST. 2026</div></header>
+<section id="home" class="screen active"><div class="home-layout"><div><div class="kicker">THE COURT IS YOURS / 01</div><h1 class="hero-title">OWN<br>THE <em>POINT.</em></h1><p class="hero-copy">Lee el rebote. Encuentra el hueco. Golpea en el momento exacto. Entra en la pista y juega un partido de pádel arcade con perspectiva de pista, ritmo rápido y competición local.</p><div class="button-row"><button class="btn primary" id="playBtn">ENTRAR EN PISTA ↗</button><button class="btn secondary" id="howBtn">CONTROLES</button></div></div><div class="hero-art"><div class="art-court"></div><div class="art-net"></div><div class="art-person"></div><div class="art-ball"></div><div class="art-stamp">PADELUM <b>·</b> CENTRE COURT / MATCH DAY</div></div></div></section>
+<section id="modes" class="screen"><div class="menu-card"><div class="kicker">MATCH SETUP / 02</div><h2>CHOOSE YOUR<br>OPPONENT.</h2><p>Partido rápido a cinco puntos. Muévete por tu mitad de la pista y golpea cuando la pelota esté a tu alcance. En dúo, cada jugador controla su lado.</p><button class="choice" id="soloBtn"><span><strong>01 / CONTRA LA CPU</strong><small>Un jugador · WASD para moverte · F para golpear</small></span><i>↗</i></button><button class="choice" id="duoBtn"><span><strong>02 / LOCAL DUO</strong><small>Mismo teclado · P1 WASD + F · P2 flechas + M</small></span><i>↗</i></button><button class="btn secondary" id="backHome" style="margin-top:22px">← VOLVER AL MENÚ</button></div></section>
+<div id="game"><canvas id="court"></canvas><div class="hud"><div class="score-card"><small id="name1">PLAYER 01</small><strong id="s1">0</strong></div><div class="score-mid">PADELUM</div><div class="score-card"><small id="name2">CPU</small><strong id="s2">0</strong></div></div><div class="game-tools"><button id="pauseBtn">Ⅱ PAUSA</button><button id="exitBtn">✕ SALIR</button></div><div class="controls" id="controlText">WASD MOVER · F GOLPEAR</div><div class="toast" id="toast">¡BUEN GOLPE!</div></div>
+<div class="overlay" id="pauseOverlay"><div class="result-card"><div class="kicker">MATCH PAUSED</div><h2>TAKE A<br>BREATHER.</h2><p>La pista te espera.</p><div class="button-row"><button class="btn primary" id="resumeBtn">CONTINUAR</button><button class="btn secondary" id="pauseExit">MENÚ</button></div></div></div>
+<div class="overlay" id="resultOverlay"><div class="result-card"><div class="trophy">🏆</div><div class="kicker">FULL TIME · COURT 01</div><h2 id="winnerText">VICTORIA</h2><p id="resultText">Has dominado la pista.</p><div class="button-row"><button class="btn primary" id="againBtn">REVANCHA ↻</button><button class="btn secondary" id="menuBtn">MENÚ PRINCIPAL</button></div></div></div>
+<div class="rotate-hint"><div><strong>GIRA EL DISPOSITIVO</strong>PADELUM está diseñado para jugarse en horizontal en PC.</div></div>
 </div>
 <script>
-(()=>{
-const $=id=>document.getElementById(id), canvas=$('court'),ctx=canvas.getContext('2d');
-let mode='solo',running=false,paused=false,raf=0,last=0,score=[0,0],ball,players=[],keys={},pointTimer=0,flash=0;
+(()=>{'use strict';
+const $=id=>document.getElementById(id),canvas=$('court'),ctx=canvas.getContext('2d');
+let mode='solo',running=false,paused=false,raf=0,last=0,score=[0,0],ball,players=[],keys={},pointTimer=0,toastTimer=0,serveSide=0,screenShake=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
 function resize(){const d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(canvas.clientWidth*d);canvas.height=Math.round(canvas.clientHeight*d);ctx.setTransform(d,0,0,d,0,0)}
 new ResizeObserver(resize).observe(canvas);
-function start(m){mode=m;score=[0,0];$('s1').textContent='0';$('s2').textContent='0';$('p2name').textContent=m==='duo'?'JUGADOR 2':'CPU';$('controlText').textContent=m==='duo'?'P1: WASD + F  ·  P2: FLECHAS + M':'WASD MOVER · F GOLPEAR';$('home').classList.remove('active');$('modes').classList.remove('active');$('game').classList.add('active');$('resultOverlay').classList.remove('show');$('pauseOverlay').classList.remove('show');resize();players=[{x:.5,y:.84,vx:0,vy:0,color:'#d8ff4f',hit:'f',human:true},{x:.5,y:.16,vx:0,vy:0,color:'#ff765f',hit:'m',human:m==='duo'}];resetBall(Math.random()>.5?1:-1);running=true;paused=false;last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
-function resetBall(dir){ball={x:.5,y:dir>0?.28:.72,z:.07,vx:(Math.random()-.5)*.004,vy:dir*.003,vz:.006,spin:0,bounces:0,lastHit:dir>0?1:0};pointTimer=45}
-function dimensions(){return {w:canvas.clientWidth,h:canvas.clientHeight,cx:canvas.clientWidth/2,top:canvas.clientHeight*.12,bottom:canvas.clientHeight*.91,half:canvas.clientWidth*.31}}
-function project(x,y,z=0){const d=dimensions(),depth=(y);return {x:d.cx+(x-.5)*d.half*2*(.55+depth*.8),y:d.top+(d.bottom-d.top)*depth-z*canvas.clientHeight*.55}}
-function drawCourt(){const d=dimensions(),w=d.half*2,top=d.top,bot=d.bottom,cx=d.cx;
-let grad=ctx.createLinearGradient(0,top,0,bot);grad.addColorStop(0,'#2e7557');grad.addColorStop(1,'#3c956b');ctx.fillStyle='#1b3024';ctx.fillRect(0,0,d.w,d.h);
-// grandstands
-for(let row=0;row<5;row++){let y=top-48+row*10;ctx.fillStyle=row%2?'#34463b':'#293b32';ctx.fillRect(cx-w*.88,y,w*1.76,9);for(let i=0;i<30;i++){ctx.fillStyle=['#d8ff4f','#e6e9df','#e16e5b','#8ba5c2'][i%4];ctx.globalAlpha=.3;ctx.beginPath();ctx.arc(cx-w*.85+i*w*1.7/30,y+2,2.3,0,7);ctx.fill();ctx.globalAlpha=1}}
-ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(cx-w*.52,top);ctx.lineTo(cx+w*.52,top);ctx.lineTo(cx+w*.98,bot);ctx.lineTo(cx-w*.98,bot);ctx.closePath();ctx.fill();
-ctx.strokeStyle='#e8f0df';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(cx-w*.52,top);ctx.lineTo(cx-w*.52,bot);ctx.lineTo(cx+w*.52,bot);ctx.lineTo(cx+w*.52,top);ctx.stroke();
-function line(y){let p=project(.5,y);let width=w*(.52+y*.46);ctx.beginPath();ctx.moveTo(cx-width/2,p.y);ctx.lineTo(cx+width/2,p.y);ctx.stroke()}
-line(.5);ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bot);ctx.stroke();
-ctx.lineWidth=1.4;for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(cx+side*w*.26,top);ctx.lineTo(cx+side*w*.49,bot);ctx.stroke()}
-const ny=project(.5,.5).y;ctx.fillStyle='#dce6d9';ctx.fillRect(cx-w*.57,ny-4,w*1.14,8);ctx.strokeStyle='#65776a';ctx.lineWidth=1;for(let i=0;i<Math.floor(w/9);i++){ctx.beginPath();ctx.moveTo(cx-w*.57+i*9,ny-4);ctx.lineTo(cx-w*.57+i*9,ny+4);ctx.stroke()}ctx.strokeStyle='white';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-w*.57,ny-5);ctx.lineTo(cx+w*.57,ny-5);ctx.stroke();
-// glass rear wall
-ctx.fillStyle='#9bb7a455';ctx.fillRect(cx-w*.55,top-5,w*1.1,5);ctx.strokeStyle='#b8c9b8';ctx.strokeRect(cx-w*.55,top-18,w*1.1,18);
+function showScreen(id){$('home').classList.toggle('active',id==='home');$('modes').classList.toggle('active',id==='modes');$('game').classList.toggle('active',id==='game')}
+function start(m){mode=m;score=[0,0];$('s1').textContent='0';$('s2').textContent='0';$('name2').textContent=m==='duo'?'PLAYER 02':'CPU';$('name1').textContent='PLAYER 01';$('controlText').textContent=m==='duo'?'P1: WASD + F  /  P2: FLECHAS + M':'WASD MOVER · F GOLPEAR';$('resultOverlay').classList.remove('show');$('pauseOverlay').classList.remove('show');showScreen('game');resize();players=[makePlayer(.5,.84,0),makePlayer(.5,.16,1)];serveSide=Math.random()<.5?0:1;resetBall(serveSide);running=true;paused=false;last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
+function makePlayer(x,y,i){return{x,y,vx:0,vy:0,color:i?'#ff765f':'#e7ff59',side:i,swing:0,hitCooldown:0,stamina:1,step:0}}
+function resetBall(server){ball={x:server===0?.5:.5,y:server===0?.69:.31,z:.035,vx:rand(-.0012,.0012),vy:server===0?-.0018:.0018,vz:.0032,bounces:0,lastHit:server,trail:[]};pointTimer=48}
+function dims(){return{w:canvas.clientWidth,h:canvas.clientHeight,cx:canvas.clientWidth/2,top:canvas.clientHeight*.115,bottom:canvas.clientHeight*.925,half:Math.min(canvas.clientWidth*.31,canvas.clientHeight*.58)}}
+function project(x,y,z=0){const d=dims(),depth=y;return{x:d.cx+(x-.5)*d.half*2*(.54+depth*.86),y:d.top+(d.bottom-d.top)*depth-z*d.h*.48}}
+function courtPoly(){const d=dims(),w=d.half,cx=d.cx;return[{x:cx-w*.53,y:d.top},{x:cx+w*.53,y:d.top},{x:cx+w*.99,y:d.bottom},{x:cx-w*.99,y:d.bottom}]}
+function drawCrowd(d){const w=d.half,cx=d.cx;for(let row=0;row<6;row++){let y=d.top-70+row*11;ctx.fillStyle=row%2?'#24392e':'#1b3027';ctx.fillRect(cx-w*.9,y,w*1.8,10);for(let i=0;i<Math.floor(w*1.8/13);i++){let x=cx-w*.88+i*13;ctx.fillStyle=['#e7ff59','#e7eee5','#ff765f','#75c8d3','#a98bff'][((i*7+row*11)%5)];ctx.globalAlpha=.22+((i+row)%3)*.08;ctx.beginPath();ctx.ellipse(x,y+3,2.5,3.2,0,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}}
+function drawCourt(){const d=dims(),w=d.half,cx=d.cx;ctx.clearRect(0,0,d.w,d.h);let bg=ctx.createLinearGradient(0,0,0,d.h);bg.addColorStop(0,'#172b22');bg.addColorStop(1,'#06100c');ctx.fillStyle=bg;ctx.fillRect(0,0,d.w,d.h);
+// roof trusses and arena lights
+ctx.strokeStyle='#6b8975';ctx.globalAlpha=.25;ctx.lineWidth=3;for(let i=-3;i<=3;i++){ctx.beginPath();ctx.moveTo(cx+i*w*.45,0);ctx.lineTo(cx+i*w*.62,d.top+10);ctx.stroke()}ctx.globalAlpha=1;
+for(let side of [-1,1]){let lx=cx+side*w*.84;let glow=ctx.createRadialGradient(lx,d.top-45,2,lx,d.top-45,85);glow.addColorStop(0,'#efffc055');glow.addColorStop(1,'#efffc000');ctx.fillStyle=glow;ctx.fillRect(lx-90,d.top-130,180,180);ctx.fillStyle='#dff2d8';ctx.fillRect(lx-24,d.top-51,48,5)}
+drawCrowd(d);
+// outer floor and court
+ctx.fillStyle='#14251c';ctx.beginPath();ctx.moveTo(cx-w*.61,d.top-7);ctx.lineTo(cx+w*.61,d.top-7);ctx.lineTo(cx+w*1.08,d.bottom+10);ctx.lineTo(cx-w*1.08,d.bottom+10);ctx.closePath();ctx.fill();
+let g=ctx.createLinearGradient(0,d.top,0,d.bottom);g.addColorStop(0,'#246348');g.addColorStop(.48,'#34865e');g.addColorStop(1,'#28724f');ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(cx-w*.53,d.top);ctx.lineTo(cx+w*.53,d.top);ctx.lineTo(cx+w*.99,d.bottom);ctx.lineTo(cx-w*.99,d.bottom);ctx.closePath();ctx.fill();
+// court surface light stripes
+ctx.save();ctx.beginPath();ctx.moveTo(cx-w*.53,d.top);ctx.lineTo(cx+w*.53,d.top);ctx.lineTo(cx+w*.99,d.bottom);ctx.lineTo(cx-w*.99,d.bottom);ctx.closePath();ctx.clip();for(let i=0;i<18;i++){ctx.fillStyle=i%2?'#ffffff04':'#001d1010';ctx.fillRect(cx-w+i*w*.12,d.top,w*.06,d.bottom-d.top)}ctx.restore();
+// glass back walls
+ctx.fillStyle='#a7d9d233';ctx.strokeStyle='#c7e5d4';ctx.lineWidth=2;ctx.fillRect(cx-w*.55,d.top-18,w*1.1,18);ctx.strokeRect(cx-w*.55,d.top-18,w*1.1,18);ctx.fillStyle='#bce4d20d';ctx.fillRect(cx-w*.54,d.top-16,w*1.08,15);
+// court lines
+ctx.strokeStyle='#eff6e7';ctx.lineWidth=2.3;ctx.beginPath();ctx.moveTo(cx-w*.53,d.top);ctx.lineTo(cx-w*.53,d.bottom);ctx.lineTo(cx+w*.53,d.bottom);ctx.lineTo(cx+w*.53,d.top);ctx.stroke();
+const line=(y)=>{let yy=d.top+(d.bottom-d.top)*y,ww=w*(.53+.46*y);ctx.beginPath();ctx.moveTo(cx-ww,yy);ctx.lineTo(cx+ww,yy);ctx.stroke()};line(.5);
+ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(cx,d.top);ctx.lineTo(cx,d.bottom);ctx.stroke();for(let s of [-1,1]){ctx.beginPath();ctx.moveTo(cx+s*w*.265,d.top);ctx.lineTo(cx+s*w*.49,d.bottom);ctx.stroke()}
+// net posts + mesh
+let ny=d.top+(d.bottom-d.top)*.5,netW=w*1.15;ctx.fillStyle='#dce8d9';ctx.fillRect(cx-netW/2,ny-8,netW,15);ctx.fillStyle='#64796d';for(let i=0;i<netW/6;i++)ctx.fillRect(cx-netW/2+i*6,ny-7,1,13);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-netW/2,ny-8);ctx.lineTo(cx+netW/2,ny-8);ctx.stroke();ctx.fillStyle='#1a2a20';ctx.fillRect(cx-netW/2-3,ny-14,5,27);ctx.fillRect(cx+netW/2-2,ny-14,5,27);
+// service-box small marks
+ctx.globalAlpha=.18;ctx.fillStyle='#f4ffe8';ctx.font='900 10px DM Sans';ctx.textAlign='center';ctx.fillText('PADELUM',cx,d.bottom-14);ctx.globalAlpha=1;
 }
-function drawPlayer(p,index){const q=project(p.x,p.y),d=dimensions(),scale=.6+p.y*.6;ctx.save();ctx.translate(q.x,q.y);ctx.scale(scale,scale);
-ctx.fillStyle='#07110c55';ctx.beginPath();ctx.ellipse(0,3,22,8,0,0,7);ctx.fill();
-// legs
-ctx.strokeStyle='#172019';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-7,-13);ctx.lineTo(-10,0);ctx.moveTo(7,-13);ctx.lineTo(10,0);ctx.stroke();
-// torso
-ctx.fillStyle=p.color;ctx.beginPath();ctx.roundRect(-13,-42,26,32,8);ctx.fill();
-// head
-ctx.fillStyle='#d7ae89';ctx.beginPath();ctx.arc(0,-49,10,0,7);ctx.fill();ctx.fillStyle='#47352c';ctx.beginPath();ctx.arc(0,-53,10,Math.PI,Math.PI*2);ctx.fill();
-// arm and racket
-let swing=p.swing>0?Math.sin(p.swing*Math.PI)*-.7:0;ctx.strokeStyle='#d7ae89';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(10,-35);ctx.lineTo(20+swing*12,-25);ctx.stroke();ctx.strokeStyle='#222a24';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(20+swing*12,-25);ctx.lineTo(29+swing*12,-8);ctx.stroke();ctx.strokeStyle='#e7eadd';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(31+swing*12,-2,7,11,-.3,0,7);ctx.stroke();ctx.restore()}
-function drawBall(){let q=project(ball.x,ball.y,ball.z);ctx.fillStyle='#0a120b55';ctx.beginPath();ctx.ellipse(q.x,q.y+ball.z*canvas.clientHeight*.55+5,7+ball.z*10,3,0,0,7);ctx.fill();ctx.fillStyle='#eaff63';ctx.shadowColor='#eaff63';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(q.x,q.y,6+ball.z*4,0,7);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#9ebd3b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(q.x,q.y,4,Math.PI*.2,Math.PI*1.2);ctx.stroke()}
-function update(dt){const d=dimensions(),speed=.00034*dt;
-players.forEach((p,i)=>{let dx=0,dy=0;if(i===0){dx=(keys.d?1:0)-(keys.a?1:0);dy=(keys.s?1:0)-(keys.w?1:0)}else if(mode==='duo'){dx=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);dy=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0)}else{let target=ball.x;p.x+=(target-p.x)*.018*dt;p.y=.16; if(ball.y<.48&&Math.abs(ball.x-p.x)<.11&&ball.z<.2&&Math.random()<.025)hit(1);return}
-p.x=clamp(p.x+dx*speed,.22,.78);p.y=clamp(p.y+dy*speed,i===0?.57:.08,i===0?.96:.43);p.swing=Math.max(0,(p.swing||0)-dt/18)});
-ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.z+=ball.vz*dt;ball.vz-=.00016*dt;ball.vx*=Math.pow(.999,dt);ball.vy*=Math.pow(.999,dt);
-if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.65;ball.bounces++;if(ball.bounces>1){point(ball.lastHit);return}}
-if(ball.x<.12||ball.x>.88){ball.x=clamp(ball.x,.12,.88);ball.vx*=-.85}
-if(ball.y<.02||ball.y>.98){point(ball.y<.02?0:1);return}
-if(pointTimer>0)pointTimer--;
-}
-function hit(i){let p=players[i];if(!p||p.swing>0)return;const dx=ball.x-p.x,dy=ball.y-p.y;if(Math.abs(dx)>.19||Math.abs(dy)>.23||ball.z>.3)return;p.swing=1;ball.vx=clamp(dx*.018+(i===0?.001:-.001),-.009,.009);ball.vy=i===0?-.0065:.0065;ball.vz=.006+Math.random()*.002;ball.lastHit=i;ball.bounces=0;toast()}
-function point(who){score[who]++;$('s1').textContent=score[0];$('s2').textContent=score[1];if(score[who]>=5){finish(who);return}resetBall(who===0?1:-1)}
-function toast(){const t=$('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),400)}
-function finish(who){running=false;$('winnerText').textContent=who===0?'¡VICTORIA!':'¡BUEN PARTIDO!';$('resultText').textContent=who===0?(mode==='duo'?'Jugador 1 se lleva el partido. ¡Qué nivel!':'Has ganado a la CPU. ¡Pista dominada!'):(mode==='duo'?'Jugador 2 se lleva el partido. ¡Partidazo!':'La CPU se lleva esta. ¿Te tomas la revancha?');$('resultOverlay').classList.add('show')}
-function render(){drawCourt();players.forEach(drawPlayer);drawBall()}
+function drawPlayer(p,i){const q=project(p.x,p.y),scale=.62+p.y*.56;ctx.save();ctx.translate(q.x,q.y);ctx.scale(scale,scale);ctx.fillStyle='#06110b66';ctx.beginPath();ctx.ellipse(0,5,24,8,0,0,Math.PI*2);ctx.fill();let swing=Math.sin(Math.min(1,p.swing)*Math.PI)*-.9,walk=Math.sin(p.step)*2.4;
+// legs and shoes
+ctx.strokeStyle='#172019';ctx.lineWidth=8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-7,-14);ctx.lineTo(-10+walk,1);ctx.moveTo(7,-14);ctx.lineTo(10-walk,1);ctx.stroke();ctx.fillStyle='#e7eee5';ctx.beginPath();ctx.ellipse(-11+walk,2,7,3,0,0,7);ctx.ellipse(10-walk,2,7,3,0,0,7);ctx.fill();
+// torso with jersey seams
+let body=ctx.createLinearGradient(-15,0,15,0);body.addColorStop(0,i?'#e75d4d':'#9dbd35');body.addColorStop(.5,p.color);body.addColorStop(1,i?'#9e3f3b':'#f4ff8a');ctx.fillStyle=body;ctx.strokeStyle='#15251b';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(-14,-45,28,34,8);ctx.fill();ctx.stroke();ctx.fillStyle='#132018';ctx.fillRect(-2,-43,4,6);
+// head + hair
+ctx.fillStyle='#d9ae89';ctx.beginPath();ctx.arc(0,-53,10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3a3026';ctx.beginPath();ctx.arc(0,-56,10,Math.PI,Math.PI*2);ctx.fill();
+// arms + racket
+ctx.strokeStyle='#d9ae89';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(11,-37);ctx.lineTo(20+swing*13,-27);ctx.stroke();ctx.strokeStyle='#26342b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(20+swing*13,-27);ctx.lineTo(28+swing*13,-12);ctx.stroke();ctx.strokeStyle='#e9f2e5';ctx.lineWidth=2.4;ctx.beginPath();ctx.ellipse(30+swing*13,-5,7,11,-.28,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#ffffff88';ctx.lineWidth=1;for(let k=-1;k<=1;k++){ctx.beginPath();ctx.moveTo(26+swing*13+k*3,-12);ctx.lineTo(33+swing*13+k*3,2);ctx.stroke()}
+ctx.restore()}
+function drawBall(){let q=project(ball.x,ball.y,ball.z);ball.trail.push({x:q.x,y:q.y});if(ball.trail.length>8)ball.trail.shift();for(let i=0;i<ball.trail.length;i++){let t=ball.trail[i],a=(i+1)/ball.trail.length;ctx.fillStyle='rgba(232,255,89,'+(a*.16)+')';ctx.beginPath();ctx.arc(t.x,t.y,2+a*3,0,7);ctx.fill()}ctx.fillStyle='#05100966';ctx.beginPath();ctx.ellipse(q.x,q.y+ball.z*canvas.clientHeight*.48+6,8+ball.z*15,3,0,0,7);ctx.fill();ctx.fillStyle='#edff68';ctx.shadowColor='#edff68';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(q.x,q.y,5+ball.z*5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#a4c23e';ctx.lineWidth=1;ctx.beginPath();ctx.arc(q.x,q.y,3.5,Math.PI*.2,Math.PI*1.2);ctx.stroke()}
+function hit(i){if(!running||paused)return;const p=players[i];if(!p||p.hitCooldown>0)return;const dx=ball.x-p.x,dy=ball.y-p.y;if(Math.abs(dx)>.205||Math.abs(dy)>.235||ball.z>.31)return;p.swing=1;p.hitCooldown=23;let toward=i===0?-1:1;ball.vx=clamp(dx*.017+rand(-.001,.001),-.009,.009);ball.vy=toward*rand(.0058,.0075);ball.vz=rand(.0055,.008);ball.lastHit=i;ball.bounces=0;ball.trail=[];screenShake=4;showToast(['¡PADELazo!','¡BUEN GOLPE!','¡QUÉ REMATE!'][Math.floor(Math.random()*3)])}
+function showToast(t){$('toast').textContent=t;$('toast').classList.add('show');toastTimer=36}
+function point(who){score[who]++;$('s1').textContent=score[0];$('s2').textContent=score[1];if(score[who]>=5){finish(who);return}serveSide=who===0?1:0;players[0].x=.5;players[0].y=.84;players[1].x=.5;players[1].y=.16;resetBall(serveSide);showToast(who===0?'PUNTO PLAYER 01':'PUNTO '+(mode==='duo'?'PLAYER 02':'CPU'))}
+function finish(who){running=false;$('winnerText').textContent=who===0?'VICTORIA':'PARTIDAZO';$('resultText').textContent=who===0?(mode==='duo'?'Player 01 se lleva el partido. Qué nivel.':'Has ganado a la CPU. La pista es tuya.'):(mode==='duo'?'Player 02 se lleva el partido. ¡Gran duelo!':'La CPU se lleva esta. ¿Revancha?');$('resultOverlay').classList.add('show')}
+function update(dt){const sp=.00034*dt;players.forEach((p,i)=>{p.hitCooldown=Math.max(0,p.hitCooldown-dt);p.swing=Math.max(0,p.swing-dt/17);if(i===0||mode==='duo'){let dx=i===0?(keys.d?1:0)-(keys.a?1:0):(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);let dy=i===0?(keys.s?1:0)-(keys.w?1:0):(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0);p.x=clamp(p.x+dx*sp,.2,.8);p.y=clamp(p.y+dy*sp,i===0?.56:.07,i===0?.96:.44);if(dx||dy)p.step+=dt*.3}else{let targetX=ball.x,targetY=clamp(ball.y,.12,.39);p.x+=clamp(targetX-p.x,-.0025*dt,.0025*dt);p.y+=clamp(targetY-p.y,-.0015*dt,.0015*dt);if(Math.abs(ball.x-p.x)<.16&&Math.abs(ball.y-p.y)<.19&&ball.y<.48&&ball.z<.25&&Math.random()<.022*dt)hit(1)}});
+ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.z+=ball.vz*dt;ball.vz-=.00015*dt;ball.vx*=Math.pow(.9992,dt);ball.vy*=Math.pow(.9994,dt);
+if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.64;ball.bounces++;if(ball.bounces>1){point(ball.lastHit);return}}
+if(ball.x<.08||ball.x>.92){ball.x=clamp(ball.x,.08,.92);ball.vx*=-.83;ball.bounces++}
+if(ball.y<.025||ball.y>.975){point(ball.lastHit);return}
+if(pointTimer>0)pointTimer--;if(toastTimer>0&&!--toastTimer)$('toast').classList.remove('show');screenShake=Math.max(0,screenShake-dt*.5)}
+function render(){ctx.save();if(screenShake)ctx.translate(rand(-screenShake,screenShake),rand(-screenShake,screenShake));drawCourt();players.forEach(drawPlayer);drawBall();ctx.restore()}
 function loop(t){if(!running)return;let dt=Math.min(2.2,(t-last)/16.67||1);last=t;if(!paused)update(dt);render();raf=requestAnimationFrame(loop)}
-function pause(){paused=!paused;$('pauseOverlay').classList.toggle('show',paused);$('pauseBtn').textContent=paused?'▶ SEGUIR':'Ⅱ PAUSA';if(paused){}else last=performance.now()}
-function goHome(){running=false;cancelAnimationFrame(raf);$('game').classList.remove('active');$('pauseOverlay').classList.remove('show');$('resultOverlay').classList.remove('show');$('home').classList.add('active')}
-$('playBtn').onclick=()=>$('modes').classList.add('active');$('howBtn').onclick=()=>alert('Mueve a tu jugador con WASD y golpea con F cuando la bola esté cerca. En modo dúo, el segundo jugador usa las flechas y golpea con M. Gana quien llegue primero a 5 puntos.');
-$('backHome').onclick=()=>{$('modes').classList.remove('active')};$('soloBtn').onclick=()=>start('solo');$('duoBtn').onclick=()=>start('duo');$('pauseBtn').onclick=pause;$('resumeBtn').onclick=pause;$('exitBtn').onclick=goHome;$('pauseExit').onclick=goHome;$('menuBtn').onclick=goHome;$('againBtn').onclick=()=>start(mode);
-window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.length===1?e.key.toLowerCase():e.key]=true;if(e.repeat)return;if(e.key.toLowerCase()==='f')hit(0);if(e.key.toLowerCase()==='m'&&mode==='duo')hit(1);if(e.key==='Escape'&&$('game').classList.contains('active'))pause()});
+function pause(){if(!running)return;paused=!paused;$('pauseOverlay').classList.toggle('show',paused);$('pauseBtn').textContent=paused?'▶ SEGUIR':'Ⅱ PAUSA';if(!paused)last=performance.now()}
+function goHome(){running=false;cancelAnimationFrame(raf);$('pauseOverlay').classList.remove('show');$('resultOverlay').classList.remove('show');showScreen('home')}
+$('playBtn').onclick=()=>showScreen('modes');$('backHome').onclick=()=>showScreen('home');$('soloBtn').onclick=()=>start('solo');$('duoBtn').onclick=()=>start('duo');$('pauseBtn').onclick=pause;$('resumeBtn').onclick=pause;$('exitBtn').onclick=goHome;$('pauseExit').onclick=goHome;$('menuBtn').onclick=goHome;$('againBtn').onclick=()=>start(mode);
+$('howBtn').onclick=()=>alert('PLAYER 01: WASD para moverte y F para golpear. En modo DUO, PLAYER 02 usa las flechas y M para golpear. Golpea cuando la pelota esté cerca. Gana quien llegue primero a 5 puntos.');
+window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();let k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=true;if(e.repeat)return;if(k==='f')hit(0);if(k==='m'&&mode==='duo')hit(1);if(k==='Escape'&&$('game').classList.contains('active'))pause()});
 window.addEventListener('keyup',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
+const splash=$('introSplash');setTimeout(()=>splash?.remove(),3400);
 })();
 </script></body></html>
