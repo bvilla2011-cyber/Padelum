@@ -296,8 +296,10 @@ async function startPvpSearch(){
 }
 
 function bindUI() {
-  $("onlineCreate").addEventListener("click", () => {
+  $("onlineCreate").addEventListener("click", async () => {
+    if(pvpActive||pvpQueueRow) await cancelPvpSearch();
     $("privateOptions").hidden = false; $("champOptions").hidden = true; $("onlineCodeCard").hidden = true;
+    $("pvpSearchPanel").hidden = true; $("tournamentLobby").hidden = true;
     $("privateOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
   const runWhenConnected = (action) => () => {
@@ -306,11 +308,13 @@ function bindUI() {
   };
   $("privateCreateBtn").addEventListener("click", runWhenConnected(createPrivateRoom));
   $("onlineJoin").addEventListener("click", runWhenConnected(joinPrivateRoom));
-  $("onlineRandom").addEventListener("click", () => { $("pvpSearchPanel").hidden=false; $("privateOptions").hidden=true; $("champOptions").hidden=true; $("tournamentLobby").hidden=true; $("pvpSearchPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); });
+  $("onlineRandom").addEventListener("click", () => { $("pvpSearchPanel").hidden=false; $("privateOptions").hidden=true; $("champOptions").hidden=true; $("tournamentLobby").hidden=true; $("onlineCodeCard").hidden=true; $("pvpSearchPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); });
   $("pvpSearchBtn").addEventListener("click", runWhenConnected(startPvpSearch));
   $("pvpCancelBtn").addEventListener("click", cancelPvpSearch);
-  $("champOpen").addEventListener("click", () => {
+  $("champOpen").addEventListener("click", async () => {
+    if(pvpActive||pvpQueueRow) await cancelPvpSearch();
     $("champOptions").hidden = false; $("privateOptions").hidden = true; $("onlineCodeCard").hidden = true;
+    $("pvpSearchPanel").hidden = true; $("tournamentLobby").hidden = true;
     $("champOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
   $("champCreate").addEventListener("click", runWhenConnected(createChampionship));
