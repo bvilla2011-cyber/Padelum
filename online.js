@@ -233,15 +233,19 @@ function bindUI() {
     $("privateOptions").hidden = false; $("champOptions").hidden = true; $("onlineCodeCard").hidden = true;
     $("privateOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
-  $("privateCreateBtn").addEventListener("click", createPrivateRoom);
-  $("onlineJoin").addEventListener("click", joinPrivateRoom);
-  $("onlineRandom").addEventListener("click", matchmaking);
+  const runWhenConnected = (action) => () => {
+    if (!user || !db) return status("El servidor todavía no está conectado. Revisa el mensaje de conexión de arriba.", "error");
+    action();
+  };
+  $("privateCreateBtn").addEventListener("click", runWhenConnected(createPrivateRoom));
+  $("onlineJoin").addEventListener("click", runWhenConnected(joinPrivateRoom));
+  $("onlineRandom").addEventListener("click", runWhenConnected(matchmaking));
   $("champOpen").addEventListener("click", () => {
     $("champOptions").hidden = false; $("privateOptions").hidden = true; $("onlineCodeCard").hidden = true;
     $("champOptions").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
-  $("champCreate").addEventListener("click", createChampionship);
-  $("champJoin").addEventListener("click", joinChampionship);
+  $("champCreate").addEventListener("click", runWhenConnected(createChampionship));
+  $("champJoin").addEventListener("click", runWhenConnected(joinChampionship));
   $("onlineBack").addEventListener("click", () => { stopPolling(); clearCode(); $("privateOptions").hidden = true; $("champOptions").hidden = true; });
   document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => { $(button.dataset.close).hidden = true; }));
   $("onlineCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
