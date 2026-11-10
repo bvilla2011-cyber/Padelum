@@ -130,6 +130,7 @@ async function boot() {
   $("authCode").addEventListener("keydown", e => { if (e.key === "Enter") verifyCode(); });
   $("authPassword").addEventListener("keydown", e => { if (e.key === "Enter") submitAuth(); });
   $("authEmail").addEventListener("keydown", e => { if (e.key === "Enter") $("authPassword").focus(); });
+  $("authBackMenu").addEventListener("click", () => { $("authGate").hidden = true; });
   $("authLogout").addEventListener("click", logout);
   $("accountOpen").addEventListener("click", openAccount);
   setMode("login");
