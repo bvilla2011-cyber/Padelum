@@ -96,7 +96,7 @@ function update(dt){const d=dimensions(),speed=.00034*dt;
 players.forEach((p,i)=>{let dx=0,dy=0;if(i===0){dx=(keys.d?1:0)-(keys.a?1:0);dy=(keys.s?1:0)-(keys.w?1:0)}else if(mode==='duo'){dx=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);dy=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0)}else{let target=ball.x;p.x+=(target-p.x)*.018*dt;p.y=.16; if(ball.y<.48&&Math.abs(ball.x-p.x)<.11&&ball.z<.2&&Math.random()<.025)hit(1);return}
 p.x=clamp(p.x+dx*speed,.22,.78);p.y=clamp(p.y+dy*speed,i===0?.57:.08,i===0?.96:.43);p.swing=Math.max(0,(p.swing||0)-dt/18)});
 ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.z+=ball.vz*dt;ball.vz-=.00016*dt;ball.vx*=Math.pow(.999,dt);ball.vy*=Math.pow(.999,dt);
-if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.65;ball.bounces++;if(ball.bounces>1){point(ball.lastHit===0?1:0);return}}
+if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.65;ball.bounces++;if(ball.bounces>1){point(ball.lastHit);return}}
 if(ball.x<.12||ball.x>.88){ball.x=clamp(ball.x,.12,.88);ball.vx*=-.85}
 if(ball.y<.02||ball.y>.98){point(ball.y<.02?0:1);return}
 if(pointTimer>0)pointTimer--;
