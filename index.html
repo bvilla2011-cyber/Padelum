@@ -200,38 +200,63 @@ function player(x,y,side){return{x,y,vx:0,vy:0,side,color:side?'#ff765f':'#eaff6
 function resetBall(s){ball={x:.5,y:s===0?.68:.32,z:.04,vx:rnd(-.0012,.0012),vy:s===0?-.0032:.0032,vz:.004,bounces:0,last:s,trail:[],fire:0};}
 function start(m){mode=m;score=[0,0];$('s1').textContent='0';$('s2').textContent='0';$('n2').textContent=m==='duo'?'JUGADOR 02':'CPU';$('hint').textContent=m==='duo'?'P1 WASD + F + ESPACIO + T POTENTE · P2 FLECHAS + M + SHIFT DER':'WASD MOVER · F GOLPEAR · ESPACIO SPRINT · T TIRO POTENTE';$('staminaCpuName').textContent=m==='duo'?'JUGADOR 02 · ENERGÍA':'CPU · ENERGÍA';$('endbox').classList.remove('on');$('pausebox').classList.remove('on');resize();players=[player(.5,.83,0),player(.5,.17,1)];server=Math.random()<.5?0:1;serveTimer=0;resetBall(server);particles=[];show('game');active=true;paused=false;last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
 function courtPath(){let d=geom(),w=d.half,c=d.cx;ctx.beginPath();ctx.moveTo(c-w*.54,d.top);ctx.lineTo(c+w*.54,d.top);ctx.lineTo(c+w*.99,d.bottom);ctx.lineTo(c-w*.99,d.bottom);ctx.closePath()}
-function drawArena(t){let d=geom(),c=d.cx,w=d.half;
-let sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#26375d');sky.addColorStop(.28,'#a65362');sky.addColorStop(.48,'#f0a064');sky.addColorStop(.7,'#46533e');sky.addColorStop(1,'#07170f');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);ctx.save();let sunX=c-w*.82,sunY=d.top-48,sunR=Math.max(22,Math.min(42,w*.075));let halo=ctx.createRadialGradient(sunX,sunY,2,sunX,sunY,sunR*2.8);halo.addColorStop(0,'#ffe9b9aa');halo.addColorStop(.35,'#ffb87555');halo.addColorStop(1,'#ffb87500');ctx.fillStyle=halo;ctx.fillRect(sunX-sunR*3,sunY-sunR*3,sunR*6,sunR*6);ctx.fillStyle='#ffe0a8';ctx.beginPath();ctx.arc(sunX,sunY,sunR,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.22;ctx.fillStyle='#fff0d5';for(let ci=0;ci<5;ci++){let cx=(W*(.12+ci*.2)+Math.sin(t*.00018+ci)*18),cy=24+ci%3*19;ctx.beginPath();ctx.ellipse(cx,cy,45,7,0,0,Math.PI*2);ctx.ellipse(cx-22,cy-4,23,8,0,0,Math.PI*2);ctx.ellipse(cx+18,cy-5,26,9,0,0,Math.PI*2);ctx.fill()}ctx.restore();
-// distant club and roof
-ctx.fillStyle='#152d21';ctx.fillRect(0,d.top-82,W,100);ctx.strokeStyle='#b5c9a7';ctx.globalAlpha=.22;ctx.lineWidth=3;for(let x=-100;x<W+100;x+=95){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(c+(x-c)*.65,d.top-65);ctx.stroke()}ctx.globalAlpha=1;
-// Giant electronic scoreboard, mounted behind the far baseline
-ctx.save();ctx.shadowColor='#000';ctx.shadowBlur=20;ctx.fillStyle='#07130e';ctx.fillRect(c-w*.57,d.top-82,w*1.14,54);ctx.strokeStyle='#b5d18a';ctx.lineWidth=3;ctx.strokeRect(c-w*.57,d.top-82,w*1.14,54);ctx.fillStyle='#183a29';ctx.fillRect(c-w*.55,d.top-80,w*1.1,50);ctx.textAlign='center';ctx.fillStyle='#eaff65';ctx.font='900 11px DM Sans';ctx.fillText('PADELUM ARENA · MARCADOR',c,d.top-67);ctx.fillStyle='#f5f0df';ctx.font='900 13px DM Sans';ctx.textAlign='right';ctx.fillText('LOCAL',c-38,d.top-44);ctx.textAlign='left';ctx.fillText(mode==='duo'?'VISITANTE':'CPU',c+38,d.top-44);ctx.fillStyle='#eaff65';ctx.font='900 25px Barlow Condensed';ctx.textAlign='right';ctx.fillText(String(score[0]),c-8,d.top-43);ctx.fillStyle='#ff8a70';ctx.textAlign='left';ctx.fillText(String(score[1]),c+8,d.top-43);ctx.restore();
-// club banners
-for(let s of [-1,1]){let x=c+s*w*.83;ctx.fillStyle=s<0?'#eaff65':'#ff7867';ctx.fillRect(x-42,d.top-64,84,27);ctx.fillStyle='#14291d';ctx.font='900 10px DM Sans';ctx.textAlign='center';ctx.fillText(s<0?'PADELUM':'CLUB 01',x,d.top-46);let gl=ctx.createRadialGradient(x,d.top-30,1,x,d.top-30,100);gl.addColorStop(0,'#fff5c866');gl.addColorStop(1,'#fff5c800');ctx.fillStyle=gl;ctx.fillRect(x-100,d.top-130,200,200)}
-// crowd terraces
-for(let row=0;row<5;row++){let y=d.top-45+row*13;ctx.fillStyle=row%2?'#34533d':'#203e2e';ctx.fillRect(c-w*1.12,y,w*2.24,13);ctx.fillStyle='#101f17';ctx.fillRect(c-w*1.12,y+11,w*2.24,3);crowd.forEach((p,i)=>{let x=c-w*1.08+p.x*w*2.16;if(i%5===row){let bob=Math.sin(t*.004+p.phase)*2.2;ctx.globalAlpha=.65+Math.sin(t*.003+p.phase)*.2;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(x,y+3+bob,p.r+1,0,Math.PI*2);ctx.fill();ctx.strokeStyle=p.c;ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(x-1,y+5+bob);ctx.lineTo(x-3+Math.sin(t*.006+p.phase)*3,y-2+bob);ctx.moveTo(x+1,y+5+bob);ctx.lineTo(x+3+Math.cos(t*.006+p.phase)*3,y-2+bob);ctx.stroke()}})}ctx.globalAlpha=1;ctx.strokeStyle='#8da987';ctx.lineWidth=3;for(let row=0;row<5;row++){let yy=d.top-47+row*13;ctx.beginPath();ctx.moveTo(c-w*1.12,yy+12);ctx.lineTo(c+w*1.12,yy+12);ctx.stroke()}ctx.fillStyle='#eaff65';ctx.font='900 9px DM Sans';ctx.textAlign='center';ctx.fillText('PADELUM ARENA',c,d.top-55);
-// apron and court
-ctx.fillStyle='#172c20';ctx.beginPath();ctx.moveTo(c-w*.61,d.top-8);ctx.lineTo(c+w*.61,d.top-8);ctx.lineTo(c+w*1.09,d.bottom+15);ctx.lineTo(c-w*1.09,d.bottom+15);ctx.closePath();ctx.fill();
-let turf=ctx.createLinearGradient(0,d.top,0,d.bottom);turf.addColorStop(0,'#347b56');turf.addColorStop(.48,'#439b68');turf.addColorStop(1,'#28764e');ctx.fillStyle=turf;courtPath();ctx.fill();
-// grass / court bands
-ctx.save();courtPath();ctx.clip();for(let i=0;i<14;i++){ctx.fillStyle=i%2?'#ffffff08':'#062d1710';ctx.fillRect(c-w+i*w*.16,d.top,w*.08,d.bottom-d.top)}
-// little surface flecks
-for(let i=0;i<80;i++){ctx.fillStyle='#d7f0d010';ctx.fillRect(c-w*.9+(i*71%1000)/1000*w*1.8,d.top+(i*37%1000)/1000*(d.bottom-d.top),2,2)}ctx.restore();
-// back glass panels and side cage
-ctx.strokeStyle='#d5e8d8';ctx.lineWidth=2;ctx.fillStyle='#b9e6df14';ctx.fillRect(c-w*.55,d.top-28,w*1.1,28);ctx.strokeRect(c-w*.55,d.top-28,w*1.1,28);
-ctx.strokeStyle='#c3dfd0';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c-w*.54,d.top);ctx.lineTo(c-w*.99,d.bottom);ctx.moveTo(c+w*.54,d.top);ctx.lineTo(c+w*.99,d.bottom);ctx.stroke();
-// court lines
-ctx.strokeStyle='#f6f2df';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(c-w*.54,d.top);ctx.lineTo(c-w*.54,d.bottom);ctx.lineTo(c+w*.54,d.bottom);ctx.lineTo(c+w*.54,d.top);ctx.stroke();
-function cross(y){let yy=d.top+(d.bottom-d.top)*y,ww=w*(.54+.45*y);ctx.beginPath();ctx.moveTo(c-ww,yy);ctx.lineTo(c+ww,yy);ctx.stroke()}cross(.5);
-ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(c,d.top);ctx.lineTo(c,d.bottom);ctx.stroke();for(let s of [-1,1]){ctx.beginPath();ctx.moveTo(c+s*w*.27,d.top);ctx.lineTo(c+s*w*.49,d.bottom);ctx.stroke()}
-// net depth, mesh and top tape
-let ny=d.top+(d.bottom-d.top)*.5,nw=w*1.19;ctx.fillStyle='#14251b88';ctx.fillRect(c-nw/2,ny+5,nw,9);ctx.fillStyle='#d7e4d9';ctx.fillRect(c-nw/2,ny-7,nw,14);ctx.fillStyle='#71877a';for(let x=c-nw/2+3;x<c+nw/2;x+=7)ctx.fillRect(x,ny-6,1,12);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c-nw/2,ny-7);ctx.lineTo(c+nw/2,ny-7);ctx.stroke();ctx.fillStyle='#26392b';ctx.fillRect(c-nw/2-4,ny-15,6,28);ctx.fillRect(c+nw/2-2,ny-15,6,28);
-// painted court logo
-ctx.fillStyle='#eff7e522';ctx.font='900 13px Barlow Condensed';ctx.textAlign='center';ctx.fillText('PADELUM',c,d.bottom-18);
-}
-function drawPlayer(p,t){let q=project(p.x,p.y),scale=.68+p.y*.55;ctx.save();ctx.translate(q.x,q.y);ctx.scale(scale,scale);let walk=Math.sin(p.step)*3,arm=Math.sin(p.swing*Math.PI)*.9;
-// shadow
-ctx.fillStyle='#07140c66';ctx.beginPath();ctx.ellipse(0,3,26,8,0,0,7);ctx.fill();
+function drawArena(t){
+const d=geom(),c=d.cx,w=d.half,top=d.top,bottom=d.bottom,depth=bottom-top;
+const poly=(pts)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath()};
+const glow=(x,y,r,color)=>{let g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'#ffffff00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2)};
+// Sunset sky, distant silhouettes and stadium roof
+let sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#182a48');sky.addColorStop(.22,'#67516d');sky.addColorStop(.43,'#d27c70');sky.addColorStop(.58,'#e8a36f');sky.addColorStop(.73,'#52634b');sky.addColorStop(1,'#08150f');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+glow(c-w*.82,top-55,Math.max(100,w*.55),'#ffc58a55');
+let sunX=c-w*.82,sunY=top-50,sunR=Math.max(19,Math.min(38,w*.07));ctx.save();ctx.shadowColor='#ffd49b';ctx.shadowBlur=35;ctx.fillStyle='#ffe1b2';ctx.beginPath();ctx.arc(sunX,sunY,sunR,0,Math.PI*2);ctx.fill();ctx.restore();
+ctx.globalAlpha=.16;ctx.fillStyle='#fff0d8';for(let i=0;i<6;i++){let x=(W*(.08+i*.19)+Math.sin(t*.00012+i)*22),y=20+(i%3)*19;ctx.beginPath();ctx.ellipse(x,y,52,8,0,0,7);ctx.ellipse(x-23,y-5,27,10,0,0,7);ctx.ellipse(x+24,y-4,30,11,0,0,7);ctx.fill()}ctx.globalAlpha=1;
+// Distant skyline and roof trusses
+ctx.fillStyle='#1a2d27';ctx.beginPath();ctx.moveTo(0,top-25);for(let x=0;x<=W;x+=90)ctx.lineTo(x,top-52+Math.sin(x*.014)*12);ctx.lineTo(W,top+12);ctx.lineTo(0,top+12);ctx.fill();
+ctx.fillStyle='#10241b';ctx.fillRect(0,top-24,W,20);
+ctx.strokeStyle='#b8cbb0';ctx.globalAlpha=.23;ctx.lineWidth=3;for(let x=-120;x<W+140;x+=95){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(c+(x-c)*.65,top-54);ctx.stroke()}ctx.globalAlpha=1;
+// Roof-mounted spotlights and visible light cones
+for(let side of [-1,1]){let lx=c+side*w*1.12,ly=top-90;ctx.save();ctx.translate(lx,ly);ctx.rotate(side*.12);ctx.fillStyle='#111d18';ctx.fillRect(-15,-8,30,16);ctx.fillStyle='#f8e7bd';ctx.shadowColor='#fff0bd';ctx.shadowBlur=18;ctx.fillRect(-9,-4,18,8);ctx.restore();ctx.save();ctx.globalAlpha=.085;ctx.fillStyle='#fff1c5';poly([[lx-8,ly+5],[lx+8,ly+5],[c+side*w*.7,bottom],[c+side*w*.18,bottom]]);ctx.fill();ctx.restore()}
+// Scoreboard, with casing, bevel and readable LED display
+ctx.save();ctx.shadowColor='#000';ctx.shadowBlur=22;ctx.fillStyle='#07110d';ctx.fillRect(c-w*.57,top-83,w*1.14,55);ctx.restore();
+ctx.fillStyle='#263c2d';ctx.fillRect(c-w*.565,top-82,w*1.13,52);ctx.strokeStyle='#a6c18b';ctx.lineWidth=2;ctx.strokeRect(c-w*.565,top-82,w*1.13,52);
+let sb=ctx.createLinearGradient(0,top-80,0,top-30);sb.addColorStop(0,'#1c3b2c');sb.addColorStop(1,'#071910');ctx.fillStyle=sb;ctx.fillRect(c-w*.55,top-78,w*1.1,44);
+ctx.textAlign='center';ctx.fillStyle='#eaff65';ctx.font='900 10px DM Sans';ctx.fillText('PADELUM ARENA  /  MATCH POINT',c,top-64);
+ctx.fillStyle='#e9eee2';ctx.font='900 11px DM Sans';ctx.textAlign='right';ctx.fillText('LOCAL',c-42,top-43);ctx.textAlign='left';ctx.fillText(mode==='duo'?'VISITANTE':'CPU',c+42,top-43);
+ctx.fillStyle='#eaff65';ctx.font='900 25px Barlow Condensed';ctx.textAlign='right';ctx.fillText(String(score[0]),c-10,top-41);ctx.fillStyle='#ff927b';ctx.textAlign='left';ctx.fillText(String(score[1]),c+10,top-41);ctx.restore();
+// Sponsor banners and illuminated terrace architecture
+for(let side of [-1,1]){let x=c+side*w*.83;ctx.save();ctx.shadowColor=side<0?'#eaff65':'#ff7867';ctx.shadowBlur=13;ctx.fillStyle=side<0?'#eaff65':'#ff7867';ctx.fillRect(x-45,top-61,90,25);ctx.restore();ctx.fillStyle='#14291d';ctx.font='900 10px DM Sans';ctx.textAlign='center';ctx.fillText(side<0?'PADELUM':'CLUB 01',x,top-44);glow(x,top-25,100,'#fff0bd28')}
+// Stands: layered fascia, seat rows, crowd silhouettes, railings
+for(let row=0;row<6;row++){let y=top-48+row*13,rowW=w*(1.1+row*.025);ctx.fillStyle=row%2?'#314b37':'#1b3528';ctx.fillRect(c-rowW,y,rowW*2,13);ctx.fillStyle='#0b1a12';ctx.fillRect(c-rowW,y+11,rowW*2,3);ctx.fillStyle='#6f8961';ctx.globalAlpha=.22;ctx.fillRect(c-rowW,y,rowW*2,1);ctx.globalAlpha=1;
+crowd.forEach((p,i)=>{if(i%6!==row)return;let x=c-w*1.08+p.x*w*2.16,bob=Math.sin(t*.004+p.phase)*2.1,headY=y+3+bob;ctx.globalAlpha=.56+Math.sin(t*.003+p.phase)*.18;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(x,headY,p.r+1,0,Math.PI*2);ctx.fill();ctx.strokeStyle=p.c;ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(x-1,headY+3);ctx.lineTo(x-4+Math.sin(t*.006+p.phase)*3,headY-5);ctx.moveTo(x+1,headY+3);ctx.lineTo(x+4+Math.cos(t*.006+p.phase)*3,headY-5);ctx.stroke()})}
+ctx.globalAlpha=1;for(let row=0;row<6;row++){let yy=top-49+row*13;ctx.strokeStyle='#9db18a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c-w*1.12,yy+12);ctx.lineTo(c+w*1.12,yy+12);ctx.stroke();ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(c-w*1.12,yy+1);ctx.lineTo(c+w*1.12,yy+1);ctx.stroke()}
+ctx.fillStyle='#eaff65';ctx.font='900 9px DM Sans';ctx.textAlign='center';ctx.fillText('PADELUM ARENA',c,top-56);
+// Court apron and floor shadow
+ctx.save();ctx.shadowColor='#000';ctx.shadowBlur=28;ctx.fillStyle='#101e16';poly([[c-w*.61,top-8],[c+w*.61,top-8],[c+w*1.1,bottom+18],[c-w*1.1,bottom+18]]);ctx.fill();ctx.restore();
+let turf=ctx.createLinearGradient(0,top,0,bottom);turf.addColorStop(0,'#2b694c');turf.addColorStop(.35,'#39875b');turf.addColorStop(.72,'#3b925e');turf.addColorStop(1,'#20583d');ctx.fillStyle=turf;courtPath();ctx.fill();
+// Artificial turf bands, subtle grain and directional light
+ctx.save();courtPath();ctx.clip();for(let i=0;i<18;i++){ctx.fillStyle=i%2?'#ffffff09':'#041c1010';ctx.fillRect(c-w+i*w*.115,top,w*.058,depth)}
+for(let i=0;i<170;i++){let x=c-w*.96+(i*173%1000)/1000*w*1.92,y=top+(i*97%1000)/1000*depth;ctx.fillStyle=i%3?'#d8f2df0b':'#071b100d';ctx.fillRect(x,y,1.5,1.5)}
+let wash=ctx.createLinearGradient(c-w,top,c+w,bottom);wash.addColorStop(0,'#fff5d51c');wash.addColorStop(.48,'#ffffff00');wash.addColorStop(1,'#071a142c');ctx.fillStyle=wash;ctx.fillRect(c-w,top,w*2,depth);
+let pool=ctx.createRadialGradient(c-w*.12,top+depth*.3,5,c-w*.12,top+depth*.3,w*1.1);pool.addColorStop(0,'#fff4d51c');pool.addColorStop(1,'#fff4d500');ctx.fillStyle=pool;ctx.fillRect(c-w,top,w*2,depth);ctx.restore();
+// Glass rear wall: transparent tint, reflections, panel joints and metal frame
+ctx.save();let glass=ctx.createLinearGradient(0,top-31,0,top+18);glass.addColorStop(0,'#b9e6df25');glass.addColorStop(.5,'#d9f2e91a');glass.addColorStop(1,'#b9e6df05');ctx.fillStyle=glass;ctx.fillRect(c-w*.55,top-29,w*1.1,30);ctx.strokeStyle='#d5e8d8aa';ctx.lineWidth=2;ctx.strokeRect(c-w*.55,top-29,w*1.1,30);ctx.strokeStyle='#ffffff35';ctx.lineWidth=1;for(let j=1;j<5;j++){let x=c-w*.55+w*1.1*j/5;ctx.beginPath();ctx.moveTo(x,top-28);ctx.lineTo(x,top);ctx.stroke()}ctx.globalAlpha=.17;ctx.fillStyle='#fff';poly([[c-w*.5,top-26],[c-w*.32,top-26],[c-w*.18,top-2],[c-w*.38,top-2]]);ctx.fill();ctx.globalAlpha=1;ctx.restore();
+// Side glass and wire cage, perspective follows court boundaries
+ctx.save();ctx.strokeStyle='#d2e7d8a8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c-w*.54,top);ctx.lineTo(c-w*.99,bottom);ctx.moveTo(c+w*.54,top);ctx.lineTo(c+w*.99,bottom);ctx.stroke();
+for(let side of [-1,1]){for(let j=1;j<9;j++){let yy=top+depth*j/9,xx=c+side*(w*.54+(w*.45*j/9));ctx.strokeStyle='#cde4d522';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(c+side*w*.54,top);ctx.lineTo(xx,yy);ctx.stroke()}for(let j=1;j<9;j++){let yy=top+depth*j/9,ww=w*(.54+.45*j/9);ctx.strokeStyle='#cde4d51a';ctx.beginPath();ctx.moveTo(c-ww,yy);ctx.lineTo(c+ww,yy);ctx.stroke()}}ctx.restore();
+// Court markings with a slight painted glow
+ctx.save();ctx.strokeStyle='#f5f0df';ctx.shadowColor='#f5f0df';ctx.shadowBlur=3;ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(c-w*.54,top);ctx.lineTo(c-w*.54,bottom);ctx.lineTo(c+w*.54,bottom);ctx.lineTo(c+w*.54,top);ctx.stroke();
+function cross(y){let yy=top+depth*y,ww=w*(.54+.45*y);ctx.beginPath();ctx.moveTo(c-ww,yy);ctx.lineTo(c+ww,yy);ctx.stroke()}cross(.5);
+ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(c,top);ctx.lineTo(c,bottom);ctx.stroke();for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(c+side*w*.27,top);ctx.lineTo(c+side*w*.49,bottom);ctx.stroke()}ctx.restore();
+// Net: posts, mesh, top band, cable and cast shadow
+let ny=top+depth*.5,nw=w*1.19;ctx.save();ctx.shadowColor='#000';ctx.shadowBlur=12;ctx.fillStyle='#07140c55';ctx.fillRect(c-nw/2,ny+7,nw,10);ctx.restore();
+let ng=ctx.createLinearGradient(0,ny-8,0,ny+8);ng.addColorStop(0,'#f7f5e9');ng.addColorStop(.5,'#c5d1c8');ng.addColorStop(1,'#71877a');ctx.fillStyle=ng;ctx.fillRect(c-nw/2,ny-7,nw,14);
+ctx.fillStyle='#536b5d';for(let x=c-nw/2+2;x<c+nw/2;x+=6){ctx.fillRect(x,ny-5,1,10)}ctx.strokeStyle='#ffffff88';ctx.lineWidth=1;for(let y=ny-5;y<ny+6;y+=4){ctx.beginPath();ctx.moveTo(c-nw/2,y);ctx.lineTo(c+nw/2,y);ctx.stroke()}
+ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c-nw/2,ny-7);ctx.lineTo(c+nw/2,ny-7);ctx.stroke();ctx.fillStyle='#24382c';ctx.fillRect(c-nw/2-5,ny-17,7,31);ctx.fillRect(c+nw/2-2,ny-17,7,31);ctx.fillStyle='#9db5a0';ctx.fillRect(c-nw/2-6,ny-18,9,3);ctx.fillRect(c+nw/2-3,ny-18,9,3);
+// Painted logo and boundary wear
+ctx.fillStyle='#eff7e51e';ctx.font='900 14px Barlow Condensed';ctx.textAlign='center';ctx.fillText('PADELUM',c,bottom-18);
+ctx.strokeStyle='#ffffff20';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(c-w*.99,bottom+3);ctx.lineTo(c+w*.99,bottom+3);ctx.stroke();
+}function drawPlayer(p,t){let q=project(p.x,p.y),scale=.68+p.y*.55;ctx.save();ctx.translate(q.x,q.y);ctx.scale(scale,scale);let walk=Math.sin(p.step)*3,arm=Math.sin(p.swing*Math.PI)*.9;
+// Soft contact shadow with ambient occlusion
+let sh=ctx.createRadialGradient(0,3,2,0,3,34);sh.addColorStop(0,'#06130dbb');sh.addColorStop(.55,'#06130d66');sh.addColorStop(1,'#06130d00');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(0,4,35,12,0,0,Math.PI*2);ctx.fill();
 // legs and shoes
 ctx.strokeStyle='#20271e';ctx.lineWidth=8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-7,-17);ctx.lineTo(-10+walk,0);ctx.moveTo(7,-17);ctx.lineTo(10-walk,0);ctx.stroke();ctx.fillStyle='#f1eee2';ctx.beginPath();ctx.ellipse(-12+walk,1,8,3,0,0,7);ctx.ellipse(11-walk,1,8,3,0,0,7);ctx.fill();
 // body with shirt panel
@@ -256,7 +281,7 @@ if(ball.x<.07||ball.x>.93){ball.x=clamp(ball.x,.07,.93);ball.vx*=-.72}
 if(ball.y<.025||ball.y>.975){award(ball.last);return}}
 particles=particles.filter(p=>p.life>0);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.smoke?-.015:.08;p.vx*=p.smoke?.97:1;p.life-=dt;if(p.smoke)p.size+=.12});if(toastLife>0&&!--toastLife)$('toast').classList.remove('on');shake=Math.max(0,shake-dt*.5)}
 function drawStaminaHUD(){for(let i=0;i<2;i++){let p=players[i];if(!p)continue;let suffix=i===0?'Local':'Cpu',fill=$('stamina'+suffix+'Fill'),pct=$('stamina'+suffix+'Pct'),wrap=$('stamina'+suffix);if(fill){fill.style.width=p.stamina+'%';pct.textContent=Math.round(p.stamina)+'%';wrap.classList.toggle('low',p.stamina<25)}}let power=players[0]?.power||0,pf=$('powerFill'),pp=$('powerPct'),ph=$('powerHud');if(pf){pf.style.width=power+'%';pp.textContent=Math.floor(power)+'%';ph.classList.toggle('ready',power>=100)}}
-function render(t){ctx.save();if(shake)ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawArena(t);players.slice().sort((a,b)=>a.y-b.y).forEach(p=>drawPlayer(p,t));drawBall();drawParticles();ctx.restore();drawStaminaHUD()}
+function render(t){ctx.save();if(shake)ctx.translate(rnd(-shake,shake),rnd(-shake,shake));drawArena(t);players.slice().sort((a,b)=>a.y-b.y).forEach(p=>drawPlayer(p,t));drawBall();drawParticles();ctx.restore();/* cinematic lens vignette and edge falloff */let vg=ctx.createRadialGradient(W*.5,H*.48,Math.min(W,H)*.22,W*.5,H*.48,Math.max(W,H)*.78);vg.addColorStop(0,'#020a0800');vg.addColorStop(.72,'#020a0808');vg.addColorStop(1,'#020a086b');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);drawStaminaHUD()}
 function loop(t){if(!active)return;let dt=Math.min(2.5,(t-last)/16.67||1);last=t;if(!paused)update(dt);render(t);raf=requestAnimationFrame(loop)}
 function pauseGame(){if(!active)return;paused=!paused;$('pausebox').classList.toggle('on',paused);$('pause').textContent=paused?'▶ SEGUIR':'Ⅱ PAUSA';if(!paused)last=performance.now()}
 function home(){active=false;cancelAnimationFrame(raf);$('pausebox').classList.remove('on');$('endbox').classList.remove('on');show('home')}
