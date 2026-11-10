@@ -182,6 +182,8 @@ async function matchmaking() {
   const started = Date.now();
   currentPoll = setInterval(async () => {
     try {
+      const joinedRooms = await db.listRows({ databaseId: DATABASE_ID, tableId: "game_rooms", queries: [Query.equal("guestId", user.$id), Query.equal("mode", "matchmaking"), Query.equal("status", "ready"), Query.limit(1)] });
+      if (joinedRooms.rows.length) { activeRoom = joinedRooms.rows[0]; stopPolling(); showCode(activeRoom.code, "RIVAL ENCONTRADO"); status("¡Te has emparejado con " + activeRoom.hostName + "! Sala online creada. La sincronización de pista se completará en la siguiente fase.", "success"); return; }
       const waiting = await db.listRows({ databaseId: DATABASE_ID, tableId: "match_queue", queries: [Query.equal("status", "waiting"), Query.orderAsc("createdAt"), Query.limit(20)] });
       const entries = waiting.rows.filter(r => r.playerId !== user.$id && Date.now() - new Date(r.createdAt).getTime() < 30000);
       const all = [...waiting.rows].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
