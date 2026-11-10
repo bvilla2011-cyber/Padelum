@@ -287,7 +287,7 @@ async function startPvpSearch(){
    updatePvpTimer();
    if(elapsed>=45&&pvpActive){pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;if(row){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch{}}
     $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR";$("pvpSearchHint").textContent="Preparando partido…";pvpCanStartCPU=true;
-    const names=["Álex Navarro","Dani Costa","Hugo Martín","Leo Serrano","Marc Vidal","Adrián Ríos","Pablo Ferrer","Mario Soler","Eric Molina","Lucas Romero","Nico Torres","Izan Castro","Jaime Ortega","Bruno Reyes","Álvaro Gil","Pol Medina"];
+    const names=["atryx","hugo_777","mariopro","xNicoX","dani_09","k1ro","L0b0","alexx_23","pablit0","m4rc","darkleo","its_eric","v1dal","noah.exe","guille_10","zeta77","byLucas","r0mer","crist1an","nexxus","ferranx","m4rio_gg","xSamu","ikercito","zero_88","thePol","adri_7","rafix","koke_23","vortex"];
     window.PADELUMOpponentName=names[Math.floor(Math.random()*names.length)];
     window.PADELUMHighCPU=true;
     if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("No se pudo iniciar el partido.","error");
