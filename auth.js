@@ -1,9 +1,11 @@
-import { Client, Account, ID } from "https://cdn.jsdelivr.net/npm/appwrite@28.0.0/+esm";
+import { Client, Account, TablesDB, ID, Query, Permission, Role } from "https://cdn.jsdelivr.net/npm/appwrite@28.0.0/+esm";
 
 const PROJECT_ID = "padelum-online";
 const ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const client = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
 const account = new Account(client);
+const tables = new TablesDB(client);
+const PROFILE_TABLE = "player_profiles";
 const $ = (id) => document.getElementById(id);
 let mode = "login";
 let pendingUserId = "";
@@ -52,7 +54,7 @@ async function enterGame(user) {
   currentUser = user;
   $("authGate").hidden = true;
 }
-function openAccount() {
+async function openAccount() {
   if (!currentUser) return;
   $("authGate").hidden = false;
   $("authFormView").hidden = true;
@@ -60,8 +62,65 @@ function openAccount() {
   $("authAccountView").hidden = false;
   $("authLoginTab").hidden = true;
   $("authSignupTab").hidden = true;
-  $("authAccountEmail").textContent = "Sesión iniciada como " + currentUser.email + ". Este dispositivo recordará tu sesión.";
+  $("authAccountEmail").textContent = "Sesión iniciada como " + currentUser.email + ". Tu perfil se guarda en tu cuenta.";
+  $("profileMessage").textContent = "Cargando tu perfil…";
+  $("profileNickname").value = currentUser.name || "";
   message("");
+  try {
+    const found = await tables.listRows({ databaseId: "padelum_online_db", tableId: PROFILE_TABLE, queries: [Query.equal("playerId", currentUser.$id), Query.limit(1)] });
+    if (found.rows[0]) $("profileNickname").value = found.rows[0].displayName || currentUser.name || "";
+    $("profileMessage").textContent = "Tu nombre será público en partidas y campeonatos. Debe ser único.";
+  } catch (e) {
+    $("profileMessage").textContent = "No se pudo cargar el perfil: " + (e.message || "error de conexión");
+  }
+}
+async function saveProfile() {
+  if (!currentUser) return;
+  const displayName = $("profileNickname").value.trim().replace(/\s+/g, " ");
+  const nickname = displayName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (displayName.length < 3 || displayName.length > 24) {
+    $("profileMessage").textContent = "El nombre debe tener entre 3 y 24 caracteres.";
+    return;
+  }
+  if (!/^[\p{L}\p{N} _-]+$/u.test(displayName)) {
+    $("profileMessage").textContent = "Usa solo letras, números, espacios, guion o guion bajo.";
+    return;
+  }
+  const button = $("profileSave");
+  button.disabled = true;
+  button.textContent = "GUARDANDO…";
+  $("profileMessage").textContent = "Comprobando disponibilidad del nombre…";
+  try {
+    const duplicates = await tables.listRows({ databaseId: "padelum_online_db", tableId: PROFILE_TABLE, queries: [Query.equal("nickname", nickname), Query.limit(5)] });
+    if (duplicates.rows.some(row => row.playerId !== currentUser.$id)) {
+      $("profileMessage").textContent = "Ese nombre ya está en uso. Prueba con otro.";
+      return;
+    }
+    const own = await tables.listRows({ databaseId: "padelum_online_db", tableId: PROFILE_TABLE, queries: [Query.equal("playerId", currentUser.$id), Query.limit(1)] });
+    await account.updateName(displayName);
+    const data = { playerId: currentUser.$id, nickname, displayName, updatedAt: new Date().toISOString() };
+    if (own.rows[0]) {
+      await tables.updateRow({ databaseId: "padelum_online_db", tableId: PROFILE_TABLE, rowId: own.rows[0].$id, data });
+    } else {
+      await tables.createRow({
+        databaseId: "padelum_online_db", tableId: PROFILE_TABLE, rowId: currentUser.$id, data,
+        permissions: [Permission.read(Role.any()), Permission.update(Role.user(currentUser.$id)), Permission.delete(Role.user(currentUser.$id))]
+      });
+    }
+    currentUser = await account.get();
+    localStorage.setItem("padelum-player-name", displayName);
+    const onlineName = $("onlineName");
+    if (onlineName) onlineName.value = displayName;
+    $("profileMessage").textContent = "¡Nombre guardado! Se mantendrá en tu cuenta cuando vuelvas a entrar.";
+  } catch (e) {
+    const msg = e?.message || "No se pudo guardar el nombre.";
+    $("profileMessage").textContent = /unique|duplicate|already exists|409/i.test(msg)
+      ? "Ese nombre acaba de ser reservado por otro jugador. Elige uno distinto."
+      : "Error al guardar: " + msg;
+  } finally {
+    button.disabled = false;
+    button.textContent = "GUARDAR NOMBRE";
+  }
 }
 async function verifyCode() {
   const secret = $("authCode").value.trim();
@@ -130,8 +189,10 @@ async function boot() {
   $("authCode").addEventListener("keydown", e => { if (e.key === "Enter") verifyCode(); });
   $("authPassword").addEventListener("keydown", e => { if (e.key === "Enter") submitAuth(); });
   $("authEmail").addEventListener("keydown", e => { if (e.key === "Enter") $("authPassword").focus(); });
+  $("profileNickname").addEventListener("keydown", e => { if (e.key === "Enter") saveProfile(); });
   $("authBackMenu").addEventListener("click", () => { $("authGate").hidden = true; });
   $("authLogout").addEventListener("click", logout);
+  $("profileSave").addEventListener("click", saveProfile);
   $("accountOpen").addEventListener("click", openAccount);
   setMode("login");
   try {
