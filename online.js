@@ -47,11 +47,17 @@ function code6() {
 const ownerPerms = (id) => [Permission.read(Role.any()), Permission.update(Role.user(id)), Permission.delete(Role.user(id))];
 const publicReadOwnerUpdate = (id) => [Permission.read(Role.any()), Permission.update(Role.user(id))];
 async function ensureAuth() {
-  try { user = await account.get(); }
-  catch { await account.createAnonymousSession(); user = await account.get(); }
+  user = await account.get();
+  if (!user.email || user.emailVerification !== true) throw new Error("Inicia sesión con tu cuenta verificada para usar PADELUM Online.");
   $("onlineName").value = user.name || localStorage.getItem("padelum-player-name") || "";
-  status("Conectado a PADELUM Online · sesión de invitado activa", "success");
+  status("Conectado a PADELUM Online · cuenta verificada", "success");
 }
+window.addEventListener("padelum:authenticated", event => {
+  if (!event.detail?.user) return;
+  user = event.detail.user;
+  $("onlineName").value = user.name || localStorage.getItem("padelum-player-name") || "";
+  status("Conectado a PADELUM Online · cuenta verificada", "success");
+});
 function saveName() { localStorage.setItem("padelum-player-name", cleanName()); }
 
 async function createPrivateRoom() {
