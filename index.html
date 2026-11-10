@@ -173,7 +173,16 @@ body:has(#home.active) header{display:none}
 @keyframes defeatCoverLeft{0%{transform:rotate(-42deg)}100%{transform:rotate(-115deg)}}
 @keyframes defeatCoverRight{0%{transform:rotate(42deg)}100%{transform:rotate(112deg)}}
 @keyframes racketDrop{0%{transform:translateY(-35px) rotate(-35deg);opacity:0}65%{transform:translateY(5px) rotate(-8deg);opacity:1}100%{transform:translateY(0) rotate(-12deg);opacity:1}}
-@media(prefers-reduced-motion:reduce){#endbox.victory *,#endbox.defeat *{animation-duration:.01ms!important;animation-iteration-count:1!important}}</style></head><body><div id="app">
+@media(prefers-reduced-motion:reduce){#endbox.victory *,#endbox.defeat *{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+/* Unified rounded UI: buttons, Discord link, menus and submenus */
+button,.menuButton,.mode,.tools button,.btn,.result .btn{border-radius:12px!important}
+.menuButton{display:flex;align-items:center;width:100%;min-height:62px;clip-path:none!important;text-decoration:none!important;font:inherit;color:#f7f2e4;cursor:pointer;overflow:hidden}
+.menuButton:visited{color:#f7f2e4}
+.menuButton:hover,.menuButton.selected{border-radius:12px!important}
+#discordLink{background:linear-gradient(100deg,#263b78,#5865f2);border:1px solid #8995ff;color:#fff;box-shadow:0 5px 20px #0004}
+#discordLink:hover{background:linear-gradient(100deg,#5865f2,#7280ff);border-color:#c4caff;color:#fff;box-shadow:0 0 24px #5865f255}
+.panel,.result,.score,.mode,.hint,.toast,.staminaHud,.tools button{border-radius:14px!important}
+</style></head><body><div id="app">
 <div id="intro"><div class="introFlash"></div><div class="introBall"></div><div class="introBrand">PADE<span>LUM</span></div><div class="introCredit">UniFormerStudio <b>×</b> @bvilla</div></div>
 
 <section id="home" class="screen active"><canvas id="menuScene"></canvas><div class="menuShade"></div><aside class="gameMenu"><div class="menuLogo">PADE<span>LUM</span></div><div class="menuButtons"><button class="menuButton selected" id="play"><span class="menuGlyph">▶</span><b>JUGAR</b><span class="menuArrow">↗</span></button><button class="menuButton" id="help"><span class="menuGlyph">⌨</span><b>CONTROLES</b><span class="menuArrow">↗</span></button><a class="menuButton" id="discordLink" href="https://discord.gg/JJcaT77nD" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span class="menuGlyph">◉</span><b>DISCORD</b><span class="menuArrow">↗</span></a></div><div class="menuCredit">UniFormerStudio <b>×</b> @bvilla</div></aside><div class="menuVersion">1.0</div></section>
