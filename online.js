@@ -246,18 +246,18 @@ async function joinChampionship(){
   },1500);
  }catch(e){status("No se pudo unir al campeonato: "+e.message,"error")}
 }
-let pvpQueueRow=null,pvpStartedAt=0,pvpActive=false,pvpPollBusy=false;
+let pvpQueueRow=null,pvpStartedAt=0,pvpActive=false,pvpPollBusy=false,pvpCanStartCPU=false;
 function formatPvpTime(seconds){return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")}
 function updatePvpTimer(){if(!pvpActive)return;const elapsed=Math.floor((Date.now()-pvpStartedAt)/1000);$("pvpTimer").textContent=formatPvpTime(elapsed);$("pvpSearchHint").textContent=elapsed>=45?"Rival no encontrado.":"Buscando rival… "+(45-elapsed)+" s."}
 async function cancelPvpSearch(){
- pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;
+ pvpCanStartCPU=false;pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;
  if(row&&db){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch(e){console.warn("Queue cleanup:",e)}}
  $("pvpTimer").textContent="00:00";$("pvpSearchHint").textContent="Búsqueda cancelada.";
  $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";$("pvpSearchBtn").onclick=null;
  status("Búsqueda cancelada.");
 }
 async function startPvpSearch(){
- if(pvpActive)return;
+ if(pvpActive)return;pvpCanStartCPU=false;
  stopPolling();clearCode();saveName();$("pvpSearchBtn").onclick=null;
  $("pvpSearchBtn").disabled=true;$("pvpSearchBtn").textContent="BUSCANDO…";
  try{pvpQueueRow=await db.createRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:ID.unique(),data:{playerId:user.$id,displayName:cleanName(),status:"waiting",roomCode:"",createdAt:new Date().toISOString()},permissions:ownerPerms(user.$id)})}
@@ -286,7 +286,7 @@ async function startPvpSearch(){
    }
    updatePvpTimer();
    if(elapsed>=45&&pvpActive){pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;if(row){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch{}}
-    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR";$("pvpSearchHint").textContent="Preparando partido…";
+    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR";$("pvpSearchHint").textContent="Preparando partido…";pvpCanStartCPU=true;
     const names=["Álex Navarro","Dani Costa","Hugo Martín","Leo Serrano","Marc Vidal","Adrián Ríos","Pablo Ferrer","Mario Soler","Eric Molina","Lucas Romero","Nico Torres","Izan Castro","Jaime Ortega","Bruno Reyes","Álvaro Gil","Pol Medina"];
     window.PADELUMOpponentName=names[Math.floor(Math.random()*names.length)];
     window.PADELUMHighCPU=true;
@@ -311,7 +311,7 @@ function bindUI() {
   $("privateCreateBtn").addEventListener("click", runWhenConnected(createPrivateRoom));
   $("onlineJoin").addEventListener("click", runWhenConnected(joinPrivateRoom));
   $("onlineRandom").addEventListener("click", () => { $("pvpSearchPanel").hidden=false; $("privateOptions").hidden=true; $("champOptions").hidden=true; $("tournamentLobby").hidden=true; $("onlineCodeCard").hidden=true; $("pvpSearchPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); });
-  $("pvpSearchBtn").addEventListener("click", runWhenConnected(startPvpSearch));
+  $("pvpSearchBtn").addEventListener("click", runWhenConnected(()=>{if(pvpCanStartCPU){pvpCanStartCPU=false;$("pvpSearchBtn").textContent="BUSCAR PVP";window.PADELUMHighCPU=true;if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("No se pudo iniciar el partido.","error");}else startPvpSearch();}));
   $("pvpCancelBtn").addEventListener("click", cancelPvpSearch);
   $("champOpen").addEventListener("click", async () => {
     if(pvpActive||pvpQueueRow) await cancelPvpSearch();
