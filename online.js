@@ -128,7 +128,7 @@ async function createChampionship() {
           const shuffled = [...players].sort(() => Math.random() - 0.5);
           const firstRound = [];
           for (let i = 0; i < shuffled.length; i += 2) firstRound.push({ a: shuffled[i], b: shuffled[i + 1], winner: null });
-          const bracket = { rounds: [firstRound], champion: null, bestOf: 5 };
+          const bracket = { rounds: [firstRound], champion: null, pointsToWin: 5, winBy: 2 };
           await db.updateRow({ databaseId: DATABASE_ID, tableId: "championships", rowId: champ.$id, data: { status: "in_progress", bracket: JSON.stringify(bracket) } });
           for (let i = 0; i < firstRound.length; i++) {
             const m = firstRound[i];
@@ -185,8 +185,9 @@ async function matchmaking() {
       const joinedRooms = await db.listRows({ databaseId: DATABASE_ID, tableId: "game_rooms", queries: [Query.equal("guestId", user.$id), Query.equal("mode", "matchmaking"), Query.equal("status", "ready"), Query.limit(1)] });
       if (joinedRooms.rows.length) { activeRoom = joinedRooms.rows[0]; stopPolling(); try { await db.deleteRow({ databaseId: DATABASE_ID, tableId: "match_queue", rowId: queueRow.$id }); } catch {} showCode(activeRoom.code, "RIVAL ENCONTRADO"); status("¡Te has emparejado con " + activeRoom.hostName + "! Sala online creada. La sincronización de pista se completará en la siguiente fase.", "success"); return; }
       const waiting = await db.listRows({ databaseId: DATABASE_ID, tableId: "match_queue", queries: [Query.equal("status", "waiting"), Query.orderAsc("createdAt"), Query.limit(20)] });
-      const entries = waiting.rows.filter(r => r.playerId !== user.$id && Date.now() - new Date(r.createdAt).getTime() < 30000);
-      const all = [...waiting.rows].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+      const fresh = waiting.rows.filter(r => Date.now() - new Date(r.createdAt).getTime() < 30000).sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+      const entries = fresh.filter(r => r.playerId !== user.$id);
+      const all = fresh;
       if (entries.length) {
         const first = all[0];
         if (first && first.playerId === user.$id) {
