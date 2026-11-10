@@ -56,7 +56,11 @@ async function enterGame(user) {
   window.dispatchEvent(new CustomEvent("padelum:authenticated", { detail: { user } }));
 }
 async function openAccount() {
-  if (!currentUser) return;
+  if (!currentUser) {
+    setMode("login");
+    $("authGate").hidden = false;
+    return;
+  }
   $("authGate").hidden = false;
   $("authFormView").hidden = true;
   $("authCodeView").hidden = true;
@@ -168,7 +172,7 @@ async function submitAuth() {
 async function logout() {
   try { await account.deleteSession({ sessionId: "current" }); } catch {}
   currentUser = null;
-  $("authGate").hidden = false;
+  $("authGate").hidden = true;
   setMode("login");
   $("authEmail").value = "";
   $("authPassword").value = "";
@@ -202,10 +206,12 @@ async function boot() {
       await enterGame(user);
     } else {
       try { await account.deleteSession({ sessionId: "current" }); } catch {}
-      $("authGate").hidden = false;
+      // La cuenta es opcional para el modo local: no bloquear el menú offline.
+      $("authGate").hidden = true;
     }
   } catch {
-    $("authGate").hidden = false;
+    // Sin sesión: el jugador puede seguir usando JUGAR y DOS JUGADORES.
+    $("authGate").hidden = true;
   }
 }
 boot();
