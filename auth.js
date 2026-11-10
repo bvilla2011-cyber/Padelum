@@ -53,6 +53,7 @@ async function sendCode(userId, email) {
 async function enterGame(user) {
   currentUser = user;
   $("authGate").hidden = true;
+  window.dispatchEvent(new CustomEvent("padelum:authenticated", { detail: { user } }));
 }
 async function openAccount() {
   if (!currentUser) return;
