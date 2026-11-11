@@ -1,0 +1,95 @@
+/* PADELUM / Presentation 2.0 — art direction for cinematic timing and sound UI */
+#soundToggle{
+ position:absolute;right:clamp(12px,2.6vw,34px);top:clamp(12px,3vh,24px);z-index:19;
+ padding:10px 15px;background:#061b15cf;color:#f4f6df;
+ border:1px solid #cced958a;border-radius:4px;
+ font:900 10px/1.2 'DM Sans',sans-serif;letter-spacing:1.6px;
+ box-shadow:0 5px 24px #0009;transition:background .2s,transform .2s,border-color .2s
+}
+#soundToggle:hover,#soundToggle:focus-visible{background:#234935;border-color:#eaff65;transform:translateY(-2px)}
+#soundToggle:focus-visible{outline:2px solid #eaff65;outline-offset:3px}
+#app:has(#game.active) #soundToggle{display:none}
+#app:has(#authGate:not([hidden])) #soundToggle{z-index:90}
+
+/* 3-2-1: a centred three-second cinematic countdown, with individually keyed impacts */
+#matchCountdown.countdownOverlay{
+ position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-items:center;
+ background:radial-gradient(ellipse at 50% 50%,#0f301add,#05120ad0 62%,#030c09ed 100%);
+ backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;text-align:center
+}
+#matchCountdown.countdownOverlay.on{display:grid}
+#matchCountdown .countdownCore{
+ position:relative;width:clamp(210px,39vmin,380px);aspect-ratio:1;
+ display:flex;align-items:center;justify-content:center;flex-direction:column;
+ transform:translateY(-2%);isolation:isolate
+}
+#matchCountdown .countdownCore:before{
+ content:'';position:absolute;inset:0;z-index:-2;border-radius:50%;
+ background:conic-gradient(from -40deg,#eaff65 0 22deg,#eaff6520 40deg 120deg,#fff2c6c8 150deg,#eaff6525 200deg 280deg,#eaff65 340deg 360deg);
+ box-shadow:0 0 35px #eaff653b,0 0 85px #eaff6522;
+ animation:padelumOrbit 3s linear infinite
+}
+#matchCountdown .countdownCore:after{
+ content:'';position:absolute;inset:7px;z-index:-1;border:1px solid #d8fba998;border-radius:50%;
+ background:radial-gradient(ellipse at 50% 38%,#1b4838fa,#051a11fc 78%);
+ box-shadow:inset 0 0 60px #000a,0 0 0 2px #0b2818cc
+}
+#matchCountdown .countdownNumber{
+ position:relative;display:block;margin:0;
+ font:900 clamp(108px,24vmin,214px)/.9 'Barlow Condensed',sans-serif;
+ color:#f9ffe1;text-shadow:0 7px 0 #4c682e,0 0 38px #eaff6599;
+ font-variant-numeric:tabular-nums;letter-spacing:-3px;transform-origin:center;
+ animation:none
+}
+#matchCountdown .countdownNumber.tick{animation:padelumCountSlam .67s cubic-bezier(.12,.86,.23,1) both}
+#matchCountdown .countdownLabel{
+ position:relative;display:block;margin:13px 6px 0;font:900 clamp(10px,1.8vmin,14px)/1.25 'DM Sans',sans-serif;
+ color:#dbf0d5;letter-spacing:clamp(2px,.55vmin,5px);text-align:center;
+ text-shadow:0 2px 10px #05110b
+}
+#matchCountdown .countdownTop{
+ position:relative;z-index:2;margin-bottom:2px;color:#eaff65;
+ font:900 11px 'DM Sans',sans-serif;letter-spacing:4px;text-transform:uppercase
+}
+#matchCountdown .countdownSweep{position:absolute;inset:-22px;border-radius:50%;border:1px dashed #eaff6556;animation:padelumOrbit 10s linear infinite reverse;opacity:.64}
+#matchCountdown .countdownFlare{position:absolute;left:50%;top:50%;width:140%;height:1px;transform:translate(-50%,-50%);background:linear-gradient(90deg,#eaff6500,#eaff65ab,#eaff6500);box-shadow:0 0 18px #eaff6590;opacity:.35}
+@keyframes padelumOrbit{to{transform:rotate(360deg)}}
+@keyframes padelumCountSlam{
+ 0%{transform:scale(2.15) rotate(-9deg);filter:blur(17px);opacity:0}
+ 28%{filter:blur(0);opacity:1}
+ 58%{transform:scale(.88) rotate(2deg)}
+ 75%{transform:scale(1.075) rotate(-1deg)}
+ 100%{transform:scale(1) rotate(0);opacity:1}
+}
+
+/* Fully articulated Canvas result character supersedes the older CSS puppet.
+   Keep existing layered crowd, lights, result panel and cinematic typography. */
+#resultCinematic{
+ position:absolute;inset:0;z-index:5;width:100%;height:100%;display:block;
+ pointer-events:none;object-fit:cover
+}
+#endbox .celebratingPlayer,#endbox .defeatPlayer{display:none!important}
+#endbox.defeat .heckles{display:none!important}
+#endbox .result{z-index:12}
+#endbox.victory .victoryScene:after{z-index:10}
+#endbox.victory .victorySparks{z-index:9}
+#endbox.defeat .victoryScene:after{z-index:9}
+#endbox .victoryScene{isolation:isolate}
+#endbox.defeat .victoryScene{
+ background:radial-gradient(ellipse at 68% 58%,#8097b044,transparent 43%),linear-gradient(180deg,#1e303a 0%,#667c91 38%,#2e4144 67%,#061510 100%)
+}
+#endbox.defeat .result h2{color:#dde8f3}
+#endbox.defeat .victoryLights{opacity:.16}
+#endbox.defeat .victoryCrowd{opacity:.6;filter:saturate(.55)}
+#endbox.victory .victoryCrowd{opacity:.9}
+@media(max-width:760px){
+ #soundToggle{top:10px;right:12px;padding:8px 11px;font-size:9px}
+ #matchCountdown .countdownCore{width:min(68vw,310px)}
+ #endbox .result{width:min(340px,73vw);padding:16px;bottom:12px;left:12px}
+ #endbox .result h2{font-size:clamp(36px,9vw,54px)}
+}
+@media(prefers-reduced-motion:reduce){
+ #matchCountdown .countdownCore:before,#matchCountdown .countdownSweep{animation:none}
+ #matchCountdown .countdownNumber.tick{animation:padelumCountStill .2s ease-out}
+ @keyframes padelumCountStill{from{opacity:.5;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+}
