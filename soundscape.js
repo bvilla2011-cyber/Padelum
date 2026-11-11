@@ -47,8 +47,13 @@ function fade(node,value,duration=.45){
 }
 function applyScene(){
  if(!ac)return;
- fade(music,scene==='menu'?.48:0,.45);
- fade(stadium,scene==='game'?.46:scene==='result'?.35:scene==='pause'?.12:0,.65);
+ // Music is mixed to 40% on its dedicated bus, with audible instruments.
+ fade(music,scene==='menu'?.40:0,.35);
+ // In menus, the stands are immediately HARD MUTED: no residual crowd noise.
+ if(scene==='menu'){
+  stadium.gain.cancelScheduledValues(ac.currentTime);
+  stadium.gain.setValueAtTime(0,ac.currentTime);
+ }else fade(stadium,scene==='game'?.46:scene==='result'?.35:scene==='pause'?.12:0,.55);
  if(scene==='menu'&&nextStep<ac.currentTime)nextStep=ac.currentTime+.08;
 }
 function setScene(s){
@@ -62,7 +67,9 @@ function tone(freq,when,duration,volume,type='sine',bus=music,cutoff=1800){
  f.type='lowpass';f.frequency.value=cutoff;
  o.type=type;o.frequency.setValueAtTime(freq,when);
  g.gain.setValueAtTime(.0001,when);
- g.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),when+.026);
+ // Original chill voices were mixed far too quietly; raise only the MUSIC source.
+ const level=bus===music?Math.min(volume*6.5,.38):volume;
+ g.gain.exponentialRampToValueAtTime(Math.max(.0002,level),when+.026);
  g.gain.exponentialRampToValueAtTime(.0001,when+duration);
  o.connect(f);f.connect(g);g.connect(bus);
  o.start(when);o.stop(when+duration+.025);
@@ -72,7 +79,7 @@ function softNoise(t,vol,duration,bus=music,cutoff=2000){
  let src=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
  src.buffer=noiseBuffer;f.type='highpass';f.frequency.value=cutoff;
  g.gain.setValueAtTime(.0001,t);
- g.gain.exponentialRampToValueAtTime(vol,t+.006);
+ g.gain.exponentialRampToValueAtTime(bus===music?vol*2.5:vol,t+.006);
  g.gain.exponentialRampToValueAtTime(.0001,t+duration);
  src.connect(f);f.connect(g);g.connect(bus);src.start(t);src.stop(t+duration+.01);
 }
@@ -136,6 +143,8 @@ function whoosh(){
  tone(310,t,.16,.023,'sine',master,900);
 }
 function cheer(power=1){
+ // Crowd is exclusive to live matches and the result celebration.
+ if(scene!=='game'&&scene!=='result')return;
  const a=unlock();if(!a||a.state!=='running'||muted)return;
  let t=a.currentTime+.03;
  for(let i=0;i<8;i++){

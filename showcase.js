@@ -130,7 +130,8 @@ function body(c,pose,t,anim){
  // Neck and ears.
  c.fillStyle=skinShadow;c.fillRect(-6,-59,12,11);
  c.fillStyle=skin;c.fillRect(-4,-62,8,14);
- c.save();c.translate(0,-68+breath*.5);c.rotate(faceTilt);
+ // Pivot at the anatomical neck joint: head and collar stay attached during win/lose tilts.
+ c.save();c.translate(0,-55+breath*.5);c.rotate(faceTilt);c.translate(0,40);
  circle(c,-15,-47,4.2,skinShadow);circle(c,15,-47,4.2,skinShadow);
  // Modelled shaded head, jawline, cheekbones.
  const head=gradient(c,-17,-60,16,-33,[[0,skinShadow],[.28,skin],[.62,skinLite],[1,skin]]);
