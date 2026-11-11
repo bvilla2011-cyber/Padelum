@@ -254,7 +254,7 @@ function animate(time){
  c.clearRect(0,0,w,h);
  const t=time-firstFrame;
  backdrop(c,w,h,t,win);
- const s=clamp(Math.min(h/178,w/390),.88,3.65);
+ const s=clamp(Math.min(h/285,w/255),.88,3.1);
  let x=win?w*.73:w*.73,y=h*.93;
  // Dynamic stadium rim light and motion trails.
  c.save();
