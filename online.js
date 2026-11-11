@@ -157,11 +157,32 @@ async function connectOnlineRoom(room) {
       status("Conexión directa lista. Entrando en pista…", "success");
       window.PADELUMStartOnline?.({ host, opponentName: host ? room.guestName : room.hostName, connection });
     };
+    let dialing = false, dialTimer = null;
+    const dial = () => {
+      if (host || started || dialing) return;
+      dialing = true;
+      const connection = peer.connect(remotePeerId, { reliable: true, serialization: "json" });
+      let settled = false, retryTimer = null;
+      const retry = () => {
+        if (started || settled) return;
+        settled = true; dialing = false; clearTimeout(retryTimer); connection.close();
+        setTimeout(dial, 650);
+      };
+      retryTimer = setTimeout(retry, 4000);
+      connection.on("open", () => {
+        if (settled || started) return;
+        settled = true; dialing = false; clearTimeout(retryTimer); clearInterval(dialTimer); begin(connection);
+      });
+      connection.on("error", error => { console.warn("PADELUM peer connect:", error); retry(); });
+      connection.on("close", retry);
+    };
     peer.on("open", () => {
       if (host) return;
-      const connection = peer.connect(remotePeerId, { reliable: true, serialization: "json" });
-      connection.on("open", () => begin(connection));
-      connection.on("error", error => { if (!started) status("Esperando la conexión del anfitrión…"); console.warn("PADELUM peer connect:", error); });
+      dial();
+      dialTimer = setInterval(() => {
+        if (started) clearInterval(dialTimer);
+        else dial();
+      }, 2000);
     });
     if (host) peer.on("connection", connection => {
       if (connection.peer !== remotePeerId) { connection.close(); return; }
