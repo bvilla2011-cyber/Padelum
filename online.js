@@ -17,6 +17,9 @@ const $ = (id) => document.getElementById(id);
 let user = null;
 let currentPoll = null;
 let activeRoom = null;
+let activePeer = null;
+let onlineConnection = null;
+let onlinePeerModule = null;
 
 function status(message, kind = "") {
   const el = $("onlineStatus");
@@ -91,7 +94,8 @@ async function createPrivateRoom() {
           permissions: [...ownerPerms(user.$id), Permission.read(Role.user(request.playerId))]
         });
         activeRoom = updated; stopPolling();
-        status("¡Rival conectado: " + request.playerName + "! La sala está completa.", "success");
+        status("¡Rival conectado: " + request.playerName + "! Abriendo la pista…", "success");
+        connectOnlineRoom(updated);
       } catch (e) { status("Esperando rival… " + (e.message || ""), ""); }
     }, 1500);
   } catch (e) { status("No se pudo crear la sala: " + e.message, "error"); }
@@ -117,11 +121,60 @@ async function joinPrivateRoom() {
         const r = latest.rows[0];
         if (r && r.guestId === user.$id && r.status === "ready") {
           activeRoom = r; stopPolling(); showCode(code, "TE HAS UNIDO A LA SALA");
-          status("¡Conectado con " + r.hostName + "! Sala lista.", "success");
+          status("¡Conectado con " + r.hostName + "! Abriendo la pista…", "success");
+          connectOnlineRoom(r);
         }
       } catch (e) { status("Esperando confirmación… " + e.message); }
     }, 1500);
   } catch (e) { status("No se pudo unir a la sala: " + e.message, "error"); }
+}
+
+async function connectOnlineRoom(room) {
+  if (!room || !user) return;
+  const host = room.hostId === user.$id;
+  const code = room.code;
+  const localPeerId = "padelum-" + code + "-" + (host ? "host" : "guest");
+  const remotePeerId = "padelum-" + code + "-" + (host ? "guest" : "host");
+  status("Conectando directamente con tu rival…");
+  try {
+    onlinePeerModule ||= import("https://cdn.jsdelivr.net/npm/peerjs@1.5.5/+esm");
+    const { Peer } = await onlinePeerModule;
+    if (!Peer) throw new Error("No se pudo cargar WebRTC.");
+    activePeer?.destroy();
+    const peer = new Peer(localPeerId, { debug: 0, config: { iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.cloudflare.com:3478" }
+    ] } });
+    activePeer = peer;
+    let started = false;
+    const begin = connection => {
+      if (started) return;
+      started = true;
+      onlineConnection = connection;
+      connection.on("close", () => window.dispatchEvent(new CustomEvent("padelum:online-disconnect")));
+      connection.on("error", error => console.warn("PADELUM data channel:", error));
+      connection.on("data", data => window.dispatchEvent(new CustomEvent("padelum:online-data", { detail: data })));
+      status("Conexión directa lista. Entrando en pista…", "success");
+      window.PADELUMStartOnline?.({ host, opponentName: host ? room.guestName : room.hostName, connection });
+    };
+    peer.on("open", () => {
+      if (host) return;
+      const connection = peer.connect(remotePeerId, { reliable: true, serialization: "json" });
+      connection.on("open", () => begin(connection));
+      connection.on("error", error => { if (!started) status("Esperando la conexión del anfitrión…"); console.warn("PADELUM peer connect:", error); });
+    });
+    if (host) peer.on("connection", connection => {
+      if (connection.peer !== remotePeerId) { connection.close(); return; }
+      connection.on("open", () => begin(connection));
+    });
+    peer.on("error", error => {
+      console.warn("PADELUM WebRTC:", error);
+      if (!started) status("No se pudo abrir la conexión directa: " + (error?.message || "revisa la red"), "error");
+    });
+  } catch (error) {
+    console.error("PADELUM WebRTC setup:", error);
+    status("No se pudo iniciar el partido online: " + (error?.message || error), "error");
+  }
 }
 
 let activeChampionship=null;
@@ -279,18 +332,15 @@ async function startPvpSearch(){
      const opponent=entries[0],code=code6(),now=new Date().toISOString();
      await db.createRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:ID.unique(),data:{code,mode:"matchmaking",status:"ready",hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName,createdAt:now,updatedAt:now,gameState:""},permissions:ownerPerms(user.$id)});
      await db.updateRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id,data:{status:"matched",roomCode:code}});
-     activeRoom={code,hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName};pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(code,"RIVAL ENCONTRADO");status("¡Rival encontrado! Sala online creada; la pista sincronizada todavía no está implementada.","success");return;
+     activeRoom={code,hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName};pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(code,"RIVAL ENCONTRADO");status("Rival encontrado. Abriendo conexión directa…","success");connectOnlineRoom(activeRoom);return;
     }
     const mine=all.find(r=>r.playerId===user.$id);
-    if(mine&&mine.status==="matched"){const room=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("code",mine.roomCode),Query.limit(1)]});if(room.rows[0]){activeRoom=room.rows[0];pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(mine.roomCode,"RIVAL ENCONTRADO");status("¡Rival encontrado! Sala online creada; la pista sincronizada todavía no está implementada.","success");return}}
+    if(mine&&mine.status==="matched"){const room=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("code",mine.roomCode),Query.limit(1)]});if(room.rows[0]){activeRoom=room.rows[0];pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(mine.roomCode,"RIVAL ENCONTRADO");status("Rival encontrado. Abriendo conexión directa…","success");connectOnlineRoom(activeRoom);return}}
    }
    updatePvpTimer();
    if(elapsed>=45&&pvpActive){pvpActive=false;stopPolling();const row=pvpQueueRow;pvpQueueRow=null;if(row){try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:row.$id})}catch{}}
-    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="JUGAR";$("pvpSearchHint").textContent="Preparando partido…";pvpCanStartCPU=true;
-    const names=["atryx","hugo_777","mariopro","xNicoX","dani_09","k1ro","L0b0","alexx_23","pablit0","m4rc","darkleo","its_eric","v1dal","noah.exe","guille_10","zeta77","byLucas","r0mer","crist1an","nexxus","ferranx","m4rio_gg","xSamu","ikercito","zero_88","thePol","adri_7","rafix","koke_23","vortex"];
-    window.PADELUMOpponentName=names[Math.floor(Math.random()*names.length)];
-    window.PADELUMHighCPU=true;
-    if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("No se pudo iniciar el partido.","error");
+    $("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR DE NUEVO";$("pvpSearchHint").textContent="Rival no encontrado. Prueba de nuevo cuando haya más jugadores.";pvpCanStartCPU=false;
+    status("No se encontró rival. Puedes volver a buscar o crear una sala privada.","error");
    }
   }catch(e){if(pvpActive)status("Buscando rival… "+(e.message||e))}
   finally{pvpPollBusy=false}
@@ -311,7 +361,7 @@ function bindUI() {
   $("privateCreateBtn").addEventListener("click", runWhenConnected(createPrivateRoom));
   $("onlineJoin").addEventListener("click", runWhenConnected(joinPrivateRoom));
   $("onlineRandom").addEventListener("click", () => { $("pvpSearchPanel").hidden=false; $("privateOptions").hidden=true; $("champOptions").hidden=true; $("tournamentLobby").hidden=true; $("onlineCodeCard").hidden=true; $("pvpSearchPanel").scrollIntoView({behavior:"smooth",block:"nearest"}); });
-  $("pvpSearchBtn").addEventListener("click", runWhenConnected(()=>{if(pvpCanStartCPU){pvpCanStartCPU=false;$("pvpSearchBtn").textContent="BUSCAR PVP";window.PADELUMHighCPU=true;if(typeof window.PADELUMStartCPU==="function")window.PADELUMStartCPU();else status("No se pudo iniciar el partido.","error");}else startPvpSearch();}));
+  $("pvpSearchBtn").addEventListener("click", runWhenConnected(()=>{pvpCanStartCPU=false;startPvpSearch();}));
   $("pvpCancelBtn").addEventListener("click", cancelPvpSearch);
   $("champOpen").addEventListener("click", async () => {
     if(pvpActive||pvpQueueRow) await cancelPvpSearch();
