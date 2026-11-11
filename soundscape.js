@@ -4,7 +4,7 @@
 (function(){
 'use strict';
 let ac=null, master=null, music=null, stadium=null, noiseBuffer=null;
-let muted=false, scene='menu', nextStep=0, stepIndex=0, interval=0;
+let muted=false, scene='menu', nextStep=0, stepIndex=0, interval=0, lastAudienceWave=0;
 const bpm=80, eighth=60/bpm/2;
 const notes={C:261.63,D:293.66,E:329.63,F:349.23,G:392,A:440,B:493.88};
 const chordSets=[
@@ -99,6 +99,10 @@ function musicStep(at,n){
 }
 function tick(){
  if(!ac||ac.state!=='running')return;
+ if(scene==='game'){
+  if(ac.currentTime-lastAudienceWave>11+Math.random()*3){lastAudienceWave=ac.currentTime;cheer(.22)}
+  return;
+ }
  if(scene!=='menu')return;
  if(nextStep<ac.currentTime-.3)nextStep=ac.currentTime+.045;
  let n=0;
