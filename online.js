@@ -20,6 +20,7 @@ let activeRoom = null;
 let activePeer = null;
 let onlineConnection = null;
 let onlinePeerModule = null;
+let onlineIsHostUser = false;
 
 function status(message, kind = "") {
   const el = $("onlineStatus");
@@ -115,11 +116,13 @@ async function joinPrivateRoom() {
       permissions: ownerPerms(user.$id)
     });
     status("Solicitud enviada. Esperando a que el anfitrión acepte…");
+    const waitStartedAt = Date.now();
     currentPoll = setInterval(async () => {
       try {
         const latest = await db.listRows({ databaseId: DATABASE_ID, tableId: "game_rooms", queries: [Query.equal("code", code), Query.limit(1)] });
         const r = latest.rows[0];
-        if (r && r.guestId === user.$id && r.status === "ready") {
+        if (Date.now() - waitStartedAt > 45000 || !r || r.status === "closed") { stopPolling(); return status("La sala ya no está disponible. Pide un código nuevo.", "error"); }
+        if (r.guestId === user.$id && r.status === "ready") {
           activeRoom = r; stopPolling(); showCode(code, "TE HAS UNIDO A LA SALA");
           status("¡Conectado con " + r.hostName + "! Abriendo la pista…", "success");
           connectOnlineRoom(r);
@@ -129,7 +132,7 @@ async function joinPrivateRoom() {
   } catch (e) { status("No se pudo unir a la sala: " + e.message, "error"); }
 }
 
-async function connectOnlineRoom(room) {
+async function connectOnlineRoom(room, tournamentMatch = null) {
   if (!room || !user) return;
   const host = room.hostId === user.$id;
   const code = room.code;
@@ -147,15 +150,22 @@ async function connectOnlineRoom(room) {
     ] } });
     activePeer = peer;
     let started = false;
+    const connectionTimeout=setTimeout(()=>{
+      if(started)return;
+      status("No se pudo conectar con el rival tras 25 segundos. Revisa la red y vuelve a intentarlo.","error");
+      try{peer.destroy()}catch{}
+      if(activePeer===peer)activePeer=null;
+    },25000);
     const begin = connection => {
       if (started) return;
-      started = true;
+      started = true;clearTimeout(connectionTimeout);
       onlineConnection = connection;
+      onlineIsHostUser = host;
       connection.on("close", () => window.dispatchEvent(new CustomEvent("padelum:online-disconnect")));
       connection.on("error", error => console.warn("PADELUM data channel:", error));
       connection.on("data", data => window.dispatchEvent(new CustomEvent("padelum:online-data", { detail: data })));
       status("Conexión directa lista. Entrando en pista…", "success");
-      window.PADELUMStartOnline?.({ host, opponentName: host ? room.guestName : room.hostName, connection });
+      window.PADELUMStartOnline?.({ host, opponentName: host ? room.guestName : room.hostName, connection, tournamentMatch });
     };
     let dialing = false, dialTimer = null;
     const dial = () => {
@@ -198,11 +208,20 @@ async function connectOnlineRoom(room) {
   }
 }
 
-let activeChampionship=null;
-let renderedLobbyPlayers="", renderedBracketData="";
+let activeChampionship=null, renderedLobbyPlayers="", renderedBracketData="", lobbyPollBusy=false, championshipAdvancing=false;
+function parseBracket(champ){try{return JSON.parse(champ?.bracket||"{}")}catch{return {rounds:[]}}}
+function matchForCurrentPlayer(champ){
+ const bracket=parseBracket(champ),rounds=bracket.rounds||[];
+ for(let ri=0;ri<rounds.length;ri++)for(let mi=0;mi<(rounds[ri]||[]).length;mi++){
+  const match=rounds[ri][mi];
+  if(!match.winner&&(match.a?.id===user?.$id||match.b?.id===user?.$id))return {match,round:ri+1,matchNumber:mi+1};
+ }
+ return null;
+}
 function renderChampLobby(champ,players){
  activeChampionship=champ;
- $("champOptions").hidden=true;$("privateOptions").hidden=true;$("tournamentLobby").hidden=false;
+ $("champOptions").hidden=true;$("privateOptions").hidden=true;$("onlineCodeCard").hidden=true;
+ $("pvpSearchPanel").hidden=true;$("tournamentLobby").hidden=false;
  $("tourneyTitle").textContent=champ.championshipName||"PADELUM OPEN";
  $("tourneyCode").textContent="CÓDIGO · "+champ.code;
  const max=Number(champ.maxPlayers)||8;
@@ -212,87 +231,171 @@ function renderChampLobby(champ,players){
   const grid=$("tourneyMembers");
   for(let i=0;i<max;i++){
    const p=players[i],old=grid.children[i];
-   if(old && old.dataset.playerId===(p?.id||"")){
+   if(old&&old.dataset.playerId===(p?.id||"")){
     old.querySelector(".tourneyAvatar").textContent=p?(p.name||"J").trim().charAt(0).toUpperCase():"＋";
     old.querySelector("strong").textContent=p?(p.name||"Jugador"):"PLAZA LIBRE";
     continue;
    }
-   const card=document.createElement("div");
-   card.className="tourneyMember"+(p?"":" empty");
-   card.dataset.playerId=p?.id||"";
+   const card=document.createElement("div");card.className="tourneyMember"+(p?"":" empty");card.dataset.playerId=p?.id||"";
    const avatar=document.createElement("div");avatar.className="tourneyAvatar";avatar.textContent=p?(p.name||"J").trim().charAt(0).toUpperCase():"＋";
    const name=document.createElement("strong");name.textContent=p?(p.name||"Jugador"):"PLAZA LIBRE";
-   card.append(avatar,name);
-   if(old)grid.replaceChild(card,old);else grid.append(card);
+   card.append(avatar,name);if(old)grid.replaceChild(card,old);else grid.append(card);
   }
   while(grid.children.length>max)grid.lastElementChild.remove();
   renderedLobbyPlayers=playerSignature;
  }
- const isHost=champ.hostId===user.$id;
+ const isHost=champ.hostId===user?.$id;
  $("tourneyStart").hidden=!isHost;
  $("tourneyStart").disabled=!isHost||champ.status!=="waiting"||players.length<4||players.length!==max;
  $("tourneyStart").style.opacity=$("tourneyStart").disabled?".32":"1";
  $("tourneyStart").style.cursor=$("tourneyStart").disabled?"not-allowed":"pointer";
- $("tourneyNote").textContent=champ.status==="waiting"?(isHost?(players.length===max?"¡Todos listos! Puedes iniciar el sorteo.":"Comparte el código. El torneo comienza cuando se completen las plazas."):"Esperando a que el anfitrión inicie el torneo…"):"Sorteo realizado. Preparando el cuadro de eliminatorias.";
- if(champ.bracket){try{const sig=champ.bracket;if(sig!==renderedBracketData){renderBracket(JSON.parse(sig));renderedBracketData=sig}}catch{}}
+ const bracket=parseBracket(champ),match=matchForCurrentPlayer(champ);
+ $("tourneyPlay").hidden=champ.status!=="in_progress"||!match;
+ $("tourneyPlay").disabled=championshipAdvancing;
+ if(bracket.rounds?.length){
+  const sig=champ.bracket;
+  if(sig!==renderedBracketData){renderBracket(bracket);renderedBracketData=sig}
+ }
+ if(champ.status==="finished"){
+  $("tourneyNote").textContent="CAMPEÓN: "+(bracket.champion?.name||"Jugador")+" · El torneo ha terminado.";
+ }else if(champ.status==="in_progress"){
+  $("tourneyNote").textContent=match?"Tu partido está listo. Pulsa «JUGAR MI PARTIDO» para entrar a la pista.":"Esperando a que termine la ronda actual para organizar la siguiente.";
+ }else{
+  $("tourneyNote").textContent=isHost?(players.length===max?"¡Todos listos! Puedes iniciar el sorteo.":"Comparte el código. El torneo comienza cuando se completen las plazas."):"Esperando a que el anfitrión inicie el torneo…";
+ }
 }
 function renderBracket(bracket){
  const root=$("tourneyBracket");root.hidden=false;root.innerHTML="";
  const rounds=bracket.rounds||[];
- const draw=document.createElement("div");draw.className="bracketDraw";draw.textContent="¡SORTEO!";root.append(draw);
  rounds.forEach((matches,ri)=>{
   const section=document.createElement("div");section.className="bracketRound";
-  const title=document.createElement("h5");title.textContent=ri===rounds.length-1?"FINAL":ri===rounds.length-2?"SEMIFINALES":ri===rounds.length-3?"CUARTOS DE FINAL":"RONDA "+(ri+1);section.append(title);
-  matches.forEach((m,mi)=>{const row=document.createElement("div");row.className="bracketMatch";const names=document.createElement("span");names.textContent=(m.a?.name||"Por decidir")+"  VS  "+(m.b?.name||"Por decidir");const tag=document.createElement("b");tag.textContent=m.winner?.name||"PENDIENTE";row.append(names,tag);section.append(row)});
+  const title=document.createElement("h5");title.textContent=ri===rounds.length-1?(rounds.length===1?"FINAL":"RONDA "+(ri+1)):"RONDA "+(ri+1);section.append(title);
+  matches.forEach(m=>{
+   const row=document.createElement("div");row.className="bracketMatch";
+   const names=document.createElement("span");names.textContent=(m.a?.name||"Por decidir")+"  VS  "+(m.b?.name||"Por decidir");
+   const tag=document.createElement("b");tag.textContent=m.winner?.name||"PENDIENTE";row.append(names,tag);section.append(row);
+  });
   root.append(section);
  });
+ if(bracket.champion){
+  const champion=document.createElement("div");champion.className="bracketChampion";champion.textContent="CAMPEÓN · "+(bracket.champion.name||"Jugador");root.append(champion);
+ }
+}
+function tournamentMatchPermissions(match){
+ return [Permission.read(Role.any()),Permission.update(Role.user(match.a.id)),Permission.update(Role.user(match.b.id))];
+}
+async function ensureTournamentMatchRows(code,bracket){
+ const found=await db.listRows({databaseId:DATABASE_ID,tableId:"tournament_matches",queries:[Query.equal("championshipCode",code),Query.limit(100)]});
+ for(let ri=0;ri<(bracket.rounds||[]).length;ri++)for(let mi=0;mi<bracket.rounds[ri].length;mi++){
+  const match=bracket.rounds[ri][mi];if(!match.a?.id||!match.b?.id)continue;
+  const round=ri+1,matchNumber=mi+1;
+  let row=found.rows.find(r=>Number(r.round)===round&&Number(r.matchNumber)===matchNumber&&r.playerA===match.a.id&&r.playerB===match.b.id);
+  if(row){match.matchId=row.$id;continue}
+  row=await db.createRow({databaseId:DATABASE_ID,tableId:"tournament_matches",rowId:ID.unique(),data:{championshipCode:code,round,matchNumber,playerA:match.a.id,playerB:match.b.id,winnerId:"",status:"pending",scoreA:0,scoreB:0},permissions:tournamentMatchPermissions(match)});
+  match.matchId=row.$id;found.rows.push(row);
+ }
+ return bracket;
+}
+async function advanceChampionship(latest){
+ if(championshipAdvancing||latest.hostId!==user?.$id||latest.status!=="in_progress")return latest;
+ championshipAdvancing=true;
+ try{
+  const bracket=parseBracket(latest);bracket.rounds=bracket.rounds||[];
+  const beforeRows=JSON.stringify(bracket);
+  await ensureTournamentMatchRows(latest.code,bracket);
+  const rows=await db.listRows({databaseId:DATABASE_ID,tableId:"tournament_matches",queries:[Query.equal("championshipCode",latest.code),Query.limit(100)]});
+  let changed=JSON.stringify(bracket)!==beforeRows;
+  for(let ri=0;ri<bracket.rounds.length;ri++)for(let mi=0;mi<bracket.rounds[ri].length;mi++){
+   const match=bracket.rounds[ri][mi];
+   const row=rows.rows.find(r=>r.$id===match.matchId)||rows.rows.find(r=>Number(r.round)===ri+1&&Number(r.matchNumber)===mi+1);
+   if(row&&row.winnerId&&row.status==="completed"){
+    const winner=row.winnerId===match.a?.id?match.a:row.winnerId===match.b?.id?match.b:null;
+    if(winner&&match.winner?.id!==winner.id){match.winner=winner;changed=true}
+   }
+  }
+  const current=bracket.rounds[bracket.rounds.length-1];
+  if(current?.length&&current.every(match=>match.winner?.id)){
+   if(current.length===1){
+    bracket.champion=current[0].winner;
+    const done=await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{status:"finished",bracket:JSON.stringify(bracket)}});
+    activeChampionship=done;renderChampLobby(done,JSON.parse(done.players||"[]"));status("¡"+bracket.champion.name+" es campeón de "+(done.championshipName||"PADELUM OPEN")+"!","success");return done;
+   }
+   const winners=current.map(match=>match.winner),next=[];
+   for(let i=0;i<winners.length;i+=2)next.push({a:winners[i],b:winners[i+1],winner:null,matchId:null});
+   bracket.rounds.push(next);
+   await ensureTournamentMatchRows(latest.code,bracket);
+   changed=true;
+  }
+  if(changed){
+   const updated=await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{bracket:JSON.stringify(bracket)}});
+   activeChampionship=updated;renderChampLobby(updated,JSON.parse(updated.players||"[]"));return updated;
+  }
+  activeChampionship=latest;return latest;
+ }catch(e){console.warn("Championship progression:",e);return latest}
+ finally{championshipAdvancing=false}
+}
+async function pollChampionship(){
+ if(lobbyPollBusy||!activeChampionship||!user)return;
+ lobbyPollBusy=true;
+ try{
+  let latest=await db.getRow({databaseId:DATABASE_ID,tableId:"championships",rowId:activeChampionship.$id});
+  let players=JSON.parse(latest.players||"[]");
+  if(latest.status==="waiting"&&latest.hostId===user.$id){
+   const requests=await db.listRows({databaseId:DATABASE_ID,tableId:"championship_join_requests",queries:[Query.equal("championshipCode",latest.code),Query.equal("status","waiting"),Query.limit(40)]});
+   let changed=false;
+   for(const req of requests.rows){if(players.length>=Number(latest.maxPlayers))break;if(!players.some(p=>p.id===req.playerId)){players.push({id:req.playerId,name:req.playerName});changed=true}}
+   if(changed){
+    latest=await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{players:JSON.stringify(players),playerIds:JSON.stringify(players.map(p=>p.id))},permissions:[...ownerPerms(user.$id),...players.filter(p=>p.id!==user.$id).map(p=>Permission.read(Role.user(p.id))) ]});
+   }
+  }
+  players=JSON.parse(latest.players||"[]");
+  if(players.some(p=>p.id===user.$id)||latest.hostId===user.$id){
+   activeChampionship=latest;
+   if(latest.status==="in_progress"&&latest.hostId===user.$id)latest=await advanceChampionship(latest);
+   renderChampLobby(latest,JSON.parse(latest.players||"[]"));
+   if(latest.status==="finished")stopPolling();
+  }else if(latest.status!=="waiting"){
+   stopPolling();status("La inscripción del torneo ya se ha cerrado.","error");
+  }
+ }catch(e){console.warn("Championship lobby poll:",e)}
+ finally{lobbyPollBusy=false}
+}
+function startChampionshipPolling(){
+ stopPolling();
+ currentPoll=setInterval(pollChampionship,1500);
+ pollChampionship();
 }
 async function startChampionship(){
- if(!activeChampionship||activeChampionship.hostId!==user.$id)return;
+ if(!activeChampionship||activeChampionship.hostId!==user?.$id||championshipAdvancing)return;
+ const startButton=$("tourneyStart");startButton.disabled=true;championshipAdvancing=true;
  try{
   const latest=await db.getRow({databaseId:DATABASE_ID,tableId:"championships",rowId:activeChampionship.$id});
   const players=JSON.parse(latest.players||"[]");
-  if(Number(latest.maxPlayers)<4||players.length<4||players.length!==Number(latest.maxPlayers))return status("El torneo necesita al menos 4 jugadores y todas las plazas completas.","error");
-  const shuffled=[...players].sort(()=>Math.random()-.5),first=[];
+  if(Number(latest.maxPlayers)<4||players.length<4||players.length!==Number(latest.maxPlayers)){
+   startButton.disabled=false;return status("El torneo necesita al menos 4 jugadores y todas las plazas completas.","error");
+  }
+  const shuffled=[...players];for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}const first=[];
   for(let i=0;i<shuffled.length;i+=2)first.push({a:shuffled[i],b:shuffled[i+1],winner:null,matchId:null});
   const bracket={rounds:[first],champion:null,pointsToWin:5,winBy:2,startedAt:new Date().toISOString()};
-  await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{status:"in_progress",bracket:JSON.stringify(bracket)}});
-  for(let i=0;i<first.length;i++){
-   const m=first[i],row=await db.createRow({databaseId:DATABASE_ID,tableId:"tournament_matches",rowId:ID.unique(),data:{championshipCode:latest.code,round:1,matchNumber:i+1,playerA:m.a.id,playerB:m.b.id,winnerId:"",status:"pending",scoreA:0,scoreB:0},permissions:[Permission.read(Role.any())]});
-   m.matchId=row.$id;
-  }
-  bracket.rounds[0]=first;
-  await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{bracket:JSON.stringify(bracket)}});
-  activeChampionship={...latest,status:"in_progress",bracket:JSON.stringify(bracket)};
-  renderChampLobby(activeChampionship,players);
-  $("tourneyStart").hidden=true;
-  $("tourneyNote").textContent="Sorteo completado. Los enfrentamientos ya están definidos.";
-  status("Sorteo de "+latest.championshipName+" completado.","success");
- }catch(e){status("No se pudo iniciar el torneo: "+(e.message||e),"error")}
+  const active=await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{status:"in_progress",bracket:JSON.stringify(bracket)}});
+  await ensureTournamentMatchRows(latest.code,bracket);
+  const updated=await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:latest.$id,data:{bracket:JSON.stringify(bracket)}});
+  activeChampionship={...active,...updated,status:"in_progress",bracket:JSON.stringify(bracket)};
+  renderedBracketData="";renderChampLobby(activeChampionship,players);
+  status("Sorteo de "+(latest.championshipName||"PADELUM OPEN")+" completado. ¡Ya podéis jugar los partidos!","success");
+ }catch(e){startButton.disabled=false;status("No se pudo iniciar el torneo: "+(e.message||e),"error")}
+ finally{championshipAdvancing=false}
 }
 async function createChampionship(){
  stopPolling();clearCode();saveName();
- const championshipName=$("champName").value.trim().replace(/\\s+/g," ");
+ const championshipName=$("champName").value.trim().replace(/\s+/g," ");
  if(championshipName.length<3||championshipName.length>48)return status("Pon un nombre de campeonato de entre 3 y 48 caracteres.","error");
  const maxPlayers=Number($("champSize").value),code=code6(),now=new Date().toISOString(),player={id:user.$id,name:cleanName()};
  if(![4,8,16,32].includes(maxPlayers))return status("El torneo debe tener un mínimo de 4 jugadores.","error");
  try{
   const champ=await db.createRow({databaseId:DATABASE_ID,tableId:"championships",rowId:ID.unique(),data:{code,championshipName,hostId:user.$id,hostName:player.name,status:"waiting",maxPlayers,playerIds:JSON.stringify([user.$id]),players:JSON.stringify([player]),bracket:"",createdAt:now},permissions:ownerPerms(user.$id)});
   renderChampLobby(champ,[player]);status("Torneo creado. Comparte el código para reunir a los participantes.","success");
-  currentPoll=setInterval(async()=>{
-   try{
-    const latest=await db.getRow({databaseId:DATABASE_ID,tableId:"championships",rowId:champ.$id}),players=JSON.parse(latest.players||"[]");
-    renderChampLobby(latest,players);
-    if(latest.status!=="waiting"){stopPolling();return}
-    const reqs=await db.listRows({databaseId:DATABASE_ID,tableId:"championship_join_requests",queries:[Query.equal("championshipCode",code),Query.equal("status","waiting"),Query.limit(40)]});
-    let changed=false;
-    for(const req of reqs.rows){if(players.length>=maxPlayers)break;if(!players.some(p=>p.id===req.playerId)){players.push({id:req.playerId,name:req.playerName});changed=true}}
-    if(changed){
-     const updated=await db.updateRow({databaseId:DATABASE_ID,tableId:"championships",rowId:champ.$id,data:{players:JSON.stringify(players),playerIds:JSON.stringify(players.map(p=>p.id))},permissions:[...ownerPerms(user.$id),...players.filter(p=>p.id!==user.$id).map(p=>Permission.read(Role.user(p.id)))]});
-     renderChampLobby(updated,players);
-    }
-   }catch(e){console.warn("Tournament lobby poll:",e)}
-  },1500);
+  startChampionshipPolling();
  }catch(e){status("No se pudo crear el campeonato: "+e.message,"error")}
 }
 async function joinChampionship(){
@@ -306,20 +409,50 @@ async function joinChampionship(){
   if(ids.includes(user.$id))return status("Ya estás inscrito en este campeonato.","error");
   if(ids.length>=champ.maxPlayers)return status("El campeonato está completo.","error");
   await db.createRow({databaseId:DATABASE_ID,tableId:"championship_join_requests",rowId:ID.unique(),data:{championshipCode:code,playerId:user.$id,playerName:cleanName(),status:"waiting",createdAt:new Date().toISOString()},permissions:ownerPerms(user.$id)});
-  status("Solicitud enviada. Esperando confirmación del anfitrión…");
-  currentPoll=setInterval(async()=>{
-   try{
-    const latest=await db.listRows({databaseId:DATABASE_ID,tableId:"championships",queries:[Query.equal("code",code),Query.limit(1)]}),row=latest.rows[0];
-    if(!row)return;
-    const playerIds=JSON.parse(row.playerIds||"[]");
-    if(playerIds.includes(user.$id)){
-     const players=JSON.parse(row.players||"[]");renderChampLobby(row,players);
-     if(row.status==="in_progress"){stopPolling();$("tourneyNote").textContent="El sorteo ya está hecho. Esperando la organización de tu partido."}
-    }
-   }catch(e){console.warn("Tournament join poll:",e)}
-  },1500);
+  activeChampionship=champ;status("Solicitud enviada. Esperando confirmación del anfitrión…");
+  startChampionshipPolling();
  }catch(e){status("No se pudo unir al campeonato: "+e.message,"error")}
 }
+function tournamentRoomCode(code,round,matchNumber){return (code+"T"+round+"M"+matchNumber).slice(0,12)}
+async function playTournamentMatch(){
+ if(!activeChampionship||!user||!db)return status("Abre el torneo antes de jugar el partido.","error");
+ const current=matchForCurrentPlayer(activeChampionship);
+ if(!current?.match?.matchId)return status("Tu partido todavía se está preparando. Prueba otra vez en unos segundos.");
+ try{
+  const match=await db.getRow({databaseId:DATABASE_ID,tableId:"tournament_matches",rowId:current.match.matchId});
+  if(match.status==="completed")return status("Este partido ya ha terminado.","error");
+  const code=tournamentRoomCode(activeChampionship.code,current.round,current.matchNumber);
+  const playerA=current.match.a,playerB=current.match.b,now=new Date().toISOString();
+  let room=null;
+  const readRoom=async()=>{const rows=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("code",code),Query.limit(1)]});return rows.rows[0]||null};
+  if(user.$id===match.playerA){
+   room=await readRoom();
+   if(!room){
+    try{room=await db.createRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:ID.unique(),data:{code,mode:"tournament",status:"ready",hostId:match.playerA,guestId:match.playerB,hostName:playerA.name,guestName:playerB.name,createdAt:now,updatedAt:now,gameState:""},permissions:ownerPerms(user.$id)})}
+    catch(e){room=await readRoom();if(!room)throw e}
+   }else if(room.status==="closed"){
+    room=await db.updateRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:room.$id,data:{status:"ready",updatedAt:now}})
+   }
+   activeTournamentMatch=match;activeRoom=room;showCode(code,"PARTIDO DE CAMPEONATO");
+   startChampionshipPolling();status("Abriendo tu partido del campeonato…","success");connectOnlineRoom(room,match);
+  }else if(user.$id===match.playerB){
+   status("Esperando a que tu rival abra la pista del campeonato…");
+   stopPolling();
+   const matchWaitStartedAt=Date.now();
+   currentPoll=setInterval(async()=>{
+    try{
+     const foundRoom=await readRoom();
+     if(Date.now()-matchWaitStartedAt>60000){stopPolling();startChampionshipPolling();return status("No se pudo abrir el partido. Tu rival puede intentarlo otra vez.","error")}
+     if(foundRoom?.status==="closed"){stopPolling();startChampionshipPolling();return status("Tu rival cerró la pista del partido.","error")}
+     if(!foundRoom||foundRoom.status!=="ready"||foundRoom.guestId!==user.$id)return;
+     stopPolling();activeTournamentMatch=match;activeRoom=foundRoom;showCode(code,"PARTIDO DE CAMPEONATO");
+     startChampionshipPolling();status("Rival listo. Entrando a la pista…","success");connectOnlineRoom(foundRoom,match);
+    }catch(e){status("Buscando la pista… "+(e.message||e))}
+   },1000);
+  }else status("Este partido no pertenece a tu cuenta.","error");
+ }catch(e){status("No se pudo abrir el partido del campeonato: "+(e.message||e),"error")}
+}
+let activeTournamentMatch=null;
 let pvpQueueRow=null,pvpStartedAt=0,pvpActive=false,pvpPollBusy=false,pvpCanStartCPU=false;
 function formatPvpTime(seconds){return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")}
 function updatePvpTimer(){if(!pvpActive)return;const elapsed=Math.floor((Date.now()-pvpStartedAt)/1000);$("pvpTimer").textContent=formatPvpTime(elapsed);$("pvpSearchHint").textContent=elapsed>=45?"Rival no encontrado.":"Buscando rival… "+(45-elapsed)+" s."}
@@ -343,7 +476,7 @@ async function startPvpSearch(){
    const elapsed=(Date.now()-pvpStartedAt)/1000;
    const joined=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("guestId",user.$id),Query.equal("mode","matchmaking"),Query.equal("status","ready"),Query.limit(1)]});
    if(!pvpActive)return;
-   if(joined.rows.length){activeRoom=joined.rows[0];pvpActive=false;stopPolling();try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id})}catch{}pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(activeRoom.code,"RIVAL ENCONTRADO");status("¡Te has emparejado con "+activeRoom.hostName+"! Sala online creada. La sincronización de pista aún no está disponible.","success");return}
+   if(joined.rows.length){activeRoom=joined.rows[0];pvpActive=false;stopPolling();try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id})}catch{}pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(activeRoom.code,"RIVAL ENCONTRADO");status("¡Te has emparejado con "+activeRoom.hostName+"! Abriendo la pista online…","success");connectOnlineRoom(activeRoom);return}
    const waiting=await db.listRows({databaseId:DATABASE_ID,tableId:"match_queue",queries:[Query.equal("status","waiting"),Query.orderAsc("createdAt"),Query.limit(40)]});
    if(!pvpActive)return;
    const fresh=waiting.rows.filter(r=>Date.now()-new Date(r.createdAt).getTime()<60000).sort((a,b)=>a.createdAt.localeCompare(b.createdAt)),entries=fresh.filter(r=>r.playerId!==user.$id),all=fresh;
@@ -351,9 +484,10 @@ async function startPvpSearch(){
     const first=all[0];
     if(first&&first.playerId===user.$id){
      const opponent=entries[0],code=code6(),now=new Date().toISOString();
-     await db.createRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:ID.unique(),data:{code,mode:"matchmaking",status:"ready",hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName,createdAt:now,updatedAt:now,gameState:""},permissions:ownerPerms(user.$id)});
+     const createdRoom=await db.createRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:ID.unique(),data:{code,mode:"matchmaking",status:"ready",hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName,createdAt:now,updatedAt:now,gameState:""},permissions:ownerPerms(user.$id)});
+     activeRoom=createdRoom;
      await db.updateRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id,data:{status:"matched",roomCode:code}});
-     activeRoom={code,hostId:user.$id,guestId:opponent.playerId,hostName:cleanName(),guestName:opponent.displayName};pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(code,"RIVAL ENCONTRADO");status("Rival encontrado. Abriendo conexión directa…","success");connectOnlineRoom(activeRoom);return;
+     try{await db.deleteRow({databaseId:DATABASE_ID,tableId:"match_queue",rowId:pvpQueueRow.$id})}catch{}pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(code,"RIVAL ENCONTRADO");status("Rival encontrado. Abriendo conexión directa…","success");connectOnlineRoom(activeRoom);return;
     }
     const mine=all.find(r=>r.playerId===user.$id);
     if(mine&&mine.status==="matched"){const room=await db.listRows({databaseId:DATABASE_ID,tableId:"game_rooms",queries:[Query.equal("code",mine.roomCode),Query.limit(1)]});if(room.rows[0]){activeRoom=room.rows[0];pvpActive=false;stopPolling();pvpQueueRow=null;$("pvpSearchBtn").disabled=false;$("pvpSearchBtn").textContent="BUSCAR PVP";showCode(mine.roomCode,"RIVAL ENCONTRADO");status("Rival encontrado. Abriendo conexión directa…","success");connectOnlineRoom(activeRoom);return}}
@@ -368,6 +502,28 @@ async function startPvpSearch(){
  },1000);
 }
 
+window.addEventListener("padelum:tournament-result",async event=>{
+ const result=event.detail;
+ if(!activeTournamentMatch||!result||result.matchId!==activeTournamentMatch.$id||activeTournamentMatch.status==="completed")return;
+ const winnerId=result.winnerSide===0?activeTournamentMatch.playerA:activeTournamentMatch.playerB;
+ try{
+  const saved=await db.updateRow({databaseId:DATABASE_ID,tableId:"tournament_matches",rowId:activeTournamentMatch.$id,data:{winnerId,status:"completed",scoreA:Number(result.score?.[0])||0,scoreB:Number(result.score?.[1])||0}});
+  activeTournamentMatch=saved;
+  status("Resultado del campeonato guardado.","success");
+ }catch(e){console.error("PADELUM tournament result:",e);status("No se pudo guardar el resultado del campeonato: "+(e.message||e),"error")}
+});
+window.addEventListener("padelum:leave-online",async()=>{
+ stopPolling();
+ if(pvpActive||pvpQueueRow)await cancelPvpSearch();
+ const room=activeRoom;
+ if(room&&room.hostId===user?.$id&&db&&["waiting","ready"].includes(room.status)){
+  try{await db.updateRow({databaseId:DATABASE_ID,tableId:"game_rooms",rowId:room.$id,data:{status:"closed",updatedAt:new Date().toISOString()}})}catch(e){console.warn("Room cleanup:",e)}
+ }
+ try{onlineConnection?.close()}catch{}
+ try{activePeer?.destroy()}catch{}
+ onlineConnection=null;activePeer=null;activeRoom=null;activeTournamentMatch=null;onlineIsHostUser=false;
+ if(activeChampionship&&["waiting","in_progress"].includes(activeChampionship.status))startChampionshipPolling();
+});
 function bindUI() {
   $("onlineCreate").addEventListener("click", async () => {
     if(pvpActive||pvpQueueRow) await cancelPvpSearch();
@@ -392,9 +548,10 @@ function bindUI() {
   });
   $("champCreate").addEventListener("click", runWhenConnected(createChampionship));
   $("tourneyStart").addEventListener("click", startChampionship);
+  $("tourneyPlay").addEventListener("click", runWhenConnected(playTournamentMatch));
   $("tourneyBack").addEventListener("click", () => { stopPolling(); $("tournamentLobby").hidden=true; $("champOptions").hidden=false; });
   $("champJoin").addEventListener("click", runWhenConnected(joinChampionship));
-  $("onlineBack").addEventListener("click", () => { if(pvpActive||pvpQueueRow)cancelPvpSearch(); stopPolling(); clearCode(); $("privateOptions").hidden = true; $("champOptions").hidden = true; $("tournamentLobby").hidden = true; $("pvpSearchPanel").hidden=true; });
+  $("onlineBack").addEventListener("click", () => { window.dispatchEvent(new CustomEvent("padelum:leave-online")); if(pvpActive||pvpQueueRow)cancelPvpSearch(); stopPolling(); clearCode(); $("privateOptions").hidden = true; $("champOptions").hidden = true; $("tournamentLobby").hidden = true; $("pvpSearchPanel").hidden=true; });
   document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => { $(button.dataset.close).hidden = true; }));
   $("onlineCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
   $("champCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
