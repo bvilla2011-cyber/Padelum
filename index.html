@@ -287,7 +287,7 @@ practice.phase+=.045;practice.swing=Math.max(0,practice.swing-.035);practicePlay
 practiceBall.x+=practiceBall.vx*dt;practiceBall.y+=practiceBall.vy*dt;practiceBall.z+=practiceBall.vz*dt;practiceBall.vz-=.00016*dt;if(practiceBall.z<0){practiceBall.z=0;practiceBall.vz=.0055;practiceBall.vx=-practiceBall.vx*.92;practiceBall.vy=-practiceBall.vy*.9;practice.swing=1}if(practiceBall.x<.55||practiceBall.x>.91)practiceBall.vx*=-1;if(practiceBall.y<.12||practiceBall.y>.88)practiceBall.vy*=-1}
 let menuLast=0;function menuLoop(t){let mdT=menuLast?Math.min(2.5,(t-menuLast)/16.67):1;menuLast=t;if($('home').classList.contains('active'))drawMenu(t,mdT);menuRAF=requestAnimationFrame(menuLoop)}menuRAF=requestAnimationFrame(menuLoop);
 
-let W=0,H=0,dpr=1,mode='solo',active=false,paused=false,raf=0,last=0,score=[0,0],keys={},players=[],ball,particles=[],crowd=[],shake=0,toastLife=0,server=0,matchWins=[0,0],serveTimer=0;
+let W=0,H=0,dpr=1,mode='solo',active=false,paused=false,raf=0,last=0,score=[0,0],keys={},players=[],ball,particles=[],crowd=[],shake=0,toastLife=0,server=0,matchWins=[0,0],serveTimer=0,countdownRemaining=0,countdownShown=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rnd=(a,b)=>a+Math.random()*(b-a);
 function resize(){dpr=Math.min(devicePixelRatio||1,2);W=canvas.clientWidth;H=canvas.clientHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);makeCrowd()}
 new ResizeObserver(resize).observe(canvas);
@@ -386,4 +386,4 @@ $('help').onclick=()=>alert('Jugador 1: WASD para moverte, F para golpear, ESPAC
 window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();let k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=true;if(e.repeat)return;if(k==='f')hit(0);if(k==='t')hit(0,true);if(k==='m'&&mode==='duo')hit(1);if(k==='Escape'&&$('game').classList.contains('active'))pauseGame()});window.addEventListener('keyup',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
 setTimeout(()=>$('intro')?.remove(),2200);
 })();
-</script><script type="module" src="./online.js?v=20261110-12"></script><script type="module" src="./auth.js?v=20261110-9"></script></body></html>
+</script><script type="module" src="./online.js?v=20261111-1"></script><script type="module" src="./auth.js?v=20261111-1"></script></body></html>
